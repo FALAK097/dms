@@ -2,20 +2,16 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { UploadDialog } from "@/components/dashboard/upload-dialog";
 import { DocumentTable } from "@/components/dashboard/document-table";
 
 export function DashboardClient() {
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleUploadComplete = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
@@ -38,29 +34,11 @@ export function DashboardClient() {
               aria-label="Search documents"
             />
           </div>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger
-              className="w-full sm:w-[180px]"
-              aria-label="Filter by status"
-            >
-              <SelectValue placeholder="Filter status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="ready">Ready</SelectItem>
-              <SelectItem value="processing">Processing</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
-          <UploadDialog onComplete={() => setRefreshKey((k) => k + 1)} />
+          <UploadDialog onComplete={handleUploadComplete} />
         </div>
       </div>
 
-      <DocumentTable
-        searchQuery={query}
-        statusFilter={status}
-        refreshKey={refreshKey}
-      />
+      <DocumentTable searchQuery={query} refreshKey={refreshKey} />
     </div>
   );
 }

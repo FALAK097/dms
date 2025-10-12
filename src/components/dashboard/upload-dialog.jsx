@@ -24,6 +24,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { documentAPI } from "@/lib/api";
 
 function bytesToSize(b) {
   if (b < 1024) return `${b} B`;
@@ -34,17 +35,10 @@ function bytesToSize(b) {
 
 const ACCEPT_MAP = {
   "application/pdf": [".pdf"],
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [
-    ".docx",
-  ],
 };
 
 const isAllowed = (f) =>
-  f?.type === "application/pdf" ||
-  f?.type ===
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-  /\.pdf$/i.test(f?.name || "") ||
-  /\.docx$/i.test(f?.name || "");
+  f?.type === "application/pdf" || /\.pdf$/i.test(f?.name || "");
 
 export function UploadDialog({ onComplete }) {
   const [open, setOpen] = useState(false);
@@ -84,7 +78,7 @@ export function UploadDialog({ onComplete }) {
 
       if (allowedFiles.length === 0) {
         toast.error("No valid files found", {
-          description: "The selected folder contains no PDF or DOCX files.",
+          description: "The selected folder contains no PDF files.",
         });
       } else {
         addFiles(allowedFiles);
@@ -99,23 +93,29 @@ export function UploadDialog({ onComplete }) {
   const startUpload = async () => {
     setUploading(true);
     setProgress(0);
-    await new Promise((resolve) => {
-      let p = 0;
-      const id = setInterval(() => {
-        p += Math.random() * 18 + 7;
-        if (p >= 100) {
-          p = 100;
-          clearInterval(id);
-          resolve();
-        }
-        setProgress(p);
-      }, 200);
-    });
-    setUploading(false);
-    setFiles([]);
-    setOpen(false);
-    toast.success("Upload has been completed");
-    onComplete?.();
+
+    try {
+      const result = await documentAPI.upload(files, (progressEvent) => {
+        const percentCompleted = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total
+        );
+        setProgress(percentCompleted);
+      });
+
+      setFiles([]);
+      setOpen(false);
+      toast.success(`Successfully uploaded ${result.count} file(s)`);
+      onComplete?.();
+    } catch (error) {
+      console.error("Upload error:", error);
+      const errorMessage = error.response?.data?.error || error.message;
+      toast.error("Upload failed", {
+        description: errorMessage || "Please try again later",
+      });
+    } finally {
+      setUploading(false);
+      setProgress(0);
+    }
   };
 
   const zoneClasses = useMemo(
@@ -143,7 +143,7 @@ export function UploadDialog({ onComplete }) {
         <DialogHeader>
           <DialogTitle>Upload documents</DialogTitle>
           <DialogDescription>
-            Select files to upload or drag and drop them below.
+            Select PDF files to upload or drag and drop them below.
           </DialogDescription>
         </DialogHeader>
 
@@ -157,7 +157,7 @@ export function UploadDialog({ onComplete }) {
           <input
             {...getInputProps({
               "aria-label": "Upload files",
-              accept: ".pdf,.docx",
+              accept: ".pdf",
             })}
           />
           <Upload className="h-6 w-6 text-muted-foreground" />
@@ -166,7 +166,7 @@ export function UploadDialog({ onComplete }) {
               ? "Drop files here..."
               : "Drag and drop files here, or click to browse"}
           </div>
-          <div className="text-xs text-muted-foreground">PDF and DOCX only</div>
+          <div className="text-xs text-muted-foreground">PDF only</div>
           <div className="mt-2">
             <Button
               type="button"
@@ -188,7 +188,7 @@ export function UploadDialog({ onComplete }) {
               multiple
               webkitdirectory=""
               directory=""
-              accept=".pdf,.docx"
+              accept=".pdf"
               onChange={onFolderChange}
               onClick={(e) => e.stopPropagation()}
             />
