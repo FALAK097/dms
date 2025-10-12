@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
+import { FileText, MessageCircle, Trash2, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -12,9 +12,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { documentAPI } from "@/lib/api";
+import { toast } from "sonner";
 
 const PAGE_SIZE = 10;
 
@@ -25,79 +50,58 @@ function formatSize(bytes) {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
-function statusBadge(status) {
-  const s = status.toLowerCase();
-  if (s === "ready") return <Badge>Ready</Badge>;
-  if (s === "processing") return <Badge variant="secondary">Processing</Badge>;
-  if (s === "failed") return <Badge variant="destructive">Failed</Badge>;
-  return <Badge variant="outline">{status}</Badge>;
-}
-
-function makeMockDocuments(count = 37) {
-  const names = [
-    "Proposal.pdf",
-    "Annual_Report_2024.pdf",
-    "Invoices_March.xlsx",
-    "Meeting_Notes.docx",
-    "Design_Specs.pdf",
-    "Research_Paper.pdf",
-    "Contract_Acme.docx",
-    "User_Manual.pdf",
-    "Dataset.csv",
-    "Presentation_Q2.pptx",
-  ];
-  const statuses = ["ready", "processing", "failed"];
-  const now = Date.now();
-  return Array.from({ length: count }).map((_, i) => {
-    const name = names[i % names.length];
-    const status = statuses[i % statuses.length];
-    const size = Math.floor(50_000 + Math.random() * 5_000_000);
-    const uploadedAt = new Date(
-      now - Math.floor(Math.random() * 1000 * 60 * 60 * 24 * 30)
-    );
-    return {
-      id: `doc_${i + 1}`,
-      name: `${i + 1}_${name}`,
-      status,
-      size,
-      uploadedAt: uploadedAt.toISOString(),
-    };
-  });
-}
-
-export function DocumentTable({
-  searchQuery = "",
-  statusFilter = "all",
-  refreshKey = 0,
-}) {
+export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [sortOrder, setSortOrder] = useState("desc");
 
-  // Fetch mock data (simulate network)
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    const timer = setTimeout(() => {
-      if (!active) return;
-      setDocs(makeMockDocuments());
-      setLoading(false);
-      setPage(1);
-    }, 750);
+
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await documentAPI.getAll();
+        if (active) {
+          setDocs(response.documents || []);
+          setPage(1);
+        }
+      } catch (err) {
+        console.error("Error fetching documents:", err);
+        if (active) {
+          setError(err.message);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchDocuments();
+
     return () => {
       active = false;
-      clearTimeout(timer);
     };
   }, [refreshKey]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    const s = statusFilter.toLowerCase();
     return docs
-      .filter((d) => (s === "all" ? true : d.status === s))
       .filter((d) => (q ? d.name.toLowerCase().includes(q) : true))
-      .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  }, [docs, searchQuery, statusFilter]);
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+      });
+  }, [docs, searchQuery, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -107,17 +111,92 @@ export function DocumentTable({
   const onPrev = () => setPage((p) => Math.max(1, p - 1));
   const onNext = () => setPage((p) => Math.min(totalPages, p + 1));
 
-  // Loading skeletons
+  const toggleSort = () => {
+    setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+  };
+
+  const toggleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedIds(new Set(pageItems.map((doc) => doc.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const toggleSelect = (id, checked) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteClick = (doc) => {
+    setDocumentToDelete(doc);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedIds.size === 0) return;
+    setDocumentToDelete({ bulk: true, count: selectedIds.size });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!documentToDelete) return;
+
+    setDeleting(true);
+    try {
+      if (documentToDelete.bulk) {
+        const deletePromises = Array.from(selectedIds).map((id) =>
+          documentAPI.delete(id)
+        );
+        await Promise.all(deletePromises);
+        toast.success(`Successfully deleted ${selectedIds.size} document(s)`);
+        setDocs((prev) => prev.filter((d) => !selectedIds.has(d.id)));
+        setSelectedIds(new Set());
+      } else {
+        await documentAPI.delete(documentToDelete.id);
+        toast.success("Document deleted successfully");
+        setDocs((prev) => prev.filter((d) => d.id !== documentToDelete.id));
+      }
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
+    } catch (error) {
+      console.error("Delete error:", error);
+      toast.error("Failed to delete document(s)", {
+        description: error.response?.data?.error || "Please try again later",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setDocumentToDelete(null);
+  };
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, searchQuery]);
+
   if (loading) {
     return (
       <div className="space-y-3">
-        <div className="hidden md:block rounded-lg border">
+        <div className="hidden md:block rounded-lg border min-h-[600px]">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">
+                  <Skeleton className="h-4 w-4" />
+                </TableHead>
                 <TableHead className="w-[40%]">Document Name</TableHead>
                 <TableHead>Uploaded Date</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -126,13 +205,13 @@ export function DocumentTable({
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
+                    <Skeleton className="h-4 w-4" />
+                  </TableCell>
+                  <TableCell>
                     <Skeleton className="h-4 w-3/4" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-4 w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-5 w-20 rounded-md" />
                   </TableCell>
                   <TableCell>
                     <Skeleton className="h-4 w-16" />
@@ -151,7 +230,7 @@ export function DocumentTable({
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <Skeleton className="h-5 w-44" />
-                  <Skeleton className="h-5 w-16 rounded-md" />
+                  <Skeleton className="h-4 w-16" />
                 </div>
                 <div className="mt-3 space-y-2">
                   <Skeleton className="h-4 w-28" />
@@ -168,47 +247,226 @@ export function DocumentTable({
     );
   }
 
-  if (!filtered.length) {
+  if (error) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center p-10 text-center">
-          <p className="text-sm text-muted-foreground">
-            No documents found. Try adjusting your search or filter.
-          </p>
-        </CardContent>
-      </Card>
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileText className="size-6" />
+          </EmptyMedia>
+          <EmptyTitle>Error loading documents</EmptyTitle>
+          <EmptyDescription>
+            {error}. Please try refreshing the page.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
+  if (!filtered.length) {
+    if (searchQuery) {
+      return (
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <FileText className="size-6" />
+            </EmptyMedia>
+            <EmptyTitle>No documents found</EmptyTitle>
+            <EmptyDescription>
+              No documents match your search. Try adjusting your search query.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      );
+    }
+
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileText className="size-6" />
+          </EmptyMedia>
+          <EmptyTitle>No documents yet</EmptyTitle>
+          <EmptyDescription>
+            Get started by uploading your first document.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  const isAllSelected =
+    pageItems.length > 0 && selectedIds.size === pageItems.length;
+  const isSomeSelected =
+    selectedIds.size > 0 && selectedIds.size < pageItems.length;
+
   return (
-    <div className="space-y-4">
-      {/* Desktop table */}
-      <div className="hidden md:block rounded-lg border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[40%]">Document Name</TableHead>
-              <TableHead>Uploaded Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {pageItems.map((doc) => (
-              <TableRow key={doc.id}>
-                <TableCell className="font-medium">{doc.name}</TableCell>
-                <TableCell>
-                  {new Date(doc.uploadedAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>{statusBadge(doc.status)}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {formatSize(doc.size)}
-                </TableCell>
-                <TableCell className="text-right">
+    <TooltipProvider>
+      <div className="space-y-4">
+        {selectedIds.size > 0 && (
+          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+            <div className="text-sm font-medium">
+              {selectedIds.size} document(s) selected
+            </div>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleBulkDeleteClick}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Selected
+            </Button>
+          </div>
+        )}
+
+        <div className="hidden md:block rounded-lg border min-h-[500px]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center">
+                        <Checkbox
+                          checked={isAllSelected}
+                          indeterminate={isSomeSelected}
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all documents"
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Select all on this page</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
+                <TableHead className="w-[40%]">Document Name</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={toggleSort}
+                    className="-ml-3 h-8"
+                  >
+                    Uploaded Date
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>Size</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pageItems.map((doc) => (
+                <TableRow key={doc.id}>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <Checkbox
+                        checked={selectedIds.has(doc.id)}
+                        onCheckedChange={(checked) =>
+                          toggleSelect(doc.id, checked)
+                        }
+                        aria-label={`Select ${doc.name}`}
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-primary hover:underline transition-colors block truncate max-w-md"
+                    >
+                      {doc.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(doc.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatSize(doc.size)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            aria-label={`Chat about ${doc.name}`}
+                          >
+                            <Link
+                              href={`/chat?docId=${encodeURIComponent(doc.id)}`}
+                            >
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              Chat
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Chat with this document</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteClick(doc)}
+                            aria-label={`Delete ${doc.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Delete document</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <div className="grid gap-3 md:hidden">
+          {pageItems.map((doc) => (
+            <Card key={doc.id}>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center pt-0.5">
+                    <Checkbox
+                      checked={selectedIds.has(doc.id)}
+                      onCheckedChange={(checked) =>
+                        toggleSelect(doc.id, checked)
+                      }
+                      aria-label={`Select ${doc.name}`}
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium truncate block hover:text-primary hover:underline transition-colors"
+                    >
+                      {doc.name}
+                    </Link>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {new Date(doc.createdAt).toLocaleDateString()}
+                    </div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      Size: {formatSize(doc.size)}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
                   <Button
                     asChild
                     size="sm"
+                    className="flex-1"
                     variant="outline"
                     aria-label={`Chat about ${doc.name}`}
                   >
@@ -217,79 +475,79 @@ export function DocumentTable({
                       Chat
                     </Link>
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mobile cards */}
-      <div className="grid gap-3 md:hidden">
-        {pageItems.map((doc) => (
-          <Card key={doc.id}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">{doc.name}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {new Date(doc.uploadedAt).toLocaleDateString()}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteClick(doc)}
+                    aria-label={`Delete ${doc.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                {statusBadge(doc.status)}
-              </div>
-              <div className="mt-3 text-sm text-muted-foreground">
-                Size: {formatSize(doc.size)}
-              </div>
-              <div className="mt-4">
-                <Button
-                  asChild
-                  size="sm"
-                  className="w-full"
-                  variant="outline"
-                  aria-label={`Chat about ${doc.name}`}
-                >
-                  <Link href={`/chat?docId=${encodeURIComponent(doc.id)}`}>
-                    <MessageCircle className="mr-2 h-4 w-4" />
-                    Chat
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {start + 1}-{Math.min(start + PAGE_SIZE, filtered.length)}{" "}
+            of {filtered.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPrev}
+              disabled={currentPage === 1}
+              aria-label="Previous page"
+            >
+              Previous
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              Page {currentPage} of {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onNext}
+              disabled={currentPage === totalPages}
+              aria-label="Next page"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="text-sm text-muted-foreground">
-          Showing {start + 1}-{Math.min(start + PAGE_SIZE, filtered.length)} of{" "}
-          {filtered.length}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onPrev}
-            disabled={currentPage === 1}
-            aria-label="Previous page"
-          >
-            Previous
-          </Button>
-          <div className="text-sm text-muted-foreground">
-            Page {currentPage} of {totalPages}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onNext}
-            disabled={currentPage === totalPages}
-            aria-label="Next page"
-          >
-            Next
-          </Button>
-        </div>
-      </div>
-    </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {documentToDelete?.bulk
+                ? "Delete documents?"
+                : "Delete document?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {documentToDelete?.bulk
+                ? `Are you sure you want to delete ${documentToDelete.count} document(s)? This action cannot be undone.`
+                : `Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDeleteCancel} disabled={deleting}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </TooltipProvider>
   );
 }
