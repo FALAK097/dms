@@ -1,3 +1,5 @@
+import { DashboardClient } from "@/components/dashboard-client";
+
 export default function Dashboard() {
-  return <div className="p-8">Dashboard</div>;
+  return <DashboardClient />;
 }

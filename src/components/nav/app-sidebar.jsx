@@ -39,7 +39,7 @@ const data = {
   groups: [],
 };
 
-export function AppSidebar({ ...props }) {
+export function AppSidebar({ children, ...props }) {
   return (
     <>
       <Sidebar collapsible="icon" {...props}>
@@ -52,6 +52,7 @@ export function AppSidebar({ ...props }) {
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
+
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
           <div className="flex items-center gap-2 px-4">
@@ -69,6 +70,10 @@ export function AppSidebar({ ...props }) {
             </Breadcrumb>
           </div>
         </header>
+
+        <div className="px-4 pb-6 md:px-8">
+          <div className="mx-auto w-full max-w-6xl">{children}</div>
+        </div>
       </SidebarInset>
     </>
   );

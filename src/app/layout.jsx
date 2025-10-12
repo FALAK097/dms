@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { ThemeProvider } from "next-themes";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/nav/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,12 +32,8 @@ export default async function RootLayout({ children }) {
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <SidebarProvider defaultOpen={defaultOpen}>
-            <div className="flex h-screen overflow-hidden">
-              <AppSidebar />
-              <main className="flex-1 overflow-y-auto bg-background">
-                {children}
-              </main>
-            </div>
+            <AppSidebar>{children}</AppSidebar>
+            <Toaster />
           </SidebarProvider>
         </ThemeProvider>
       </body>
