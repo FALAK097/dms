@@ -21,6 +21,18 @@ export const documentAPI = {
       onUploadProgress,
     });
 
+    const documents = response.data.documents || [];
+    documents.forEach((doc) => {
+      if (doc.id) {
+        documentAPI.processDocument(doc.id).catch((error) => {
+          console.error(
+            `Failed to trigger processing for document ${doc.id}:`,
+            error
+          );
+        });
+      }
+    });
+
     return response.data;
   },
 
@@ -31,6 +43,11 @@ export const documentAPI = {
 
   delete: async (id) => {
     const response = await api.delete(`/documents/${id}`);
+    return response.data;
+  },
+
+  processDocument: async (documentId) => {
+    const response = await api.post("/documents/process", { documentId });
     return response.data;
   },
 };

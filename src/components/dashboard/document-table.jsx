@@ -1,8 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { FileText, MessageCircle, Trash2, ArrowUpDown } from "lucide-react";
+import {
+  FileText,
+  MessageCircle,
+  Trash2,
+  ArrowUpDown,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  RefreshCw,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -40,6 +50,7 @@ import {
 } from "@/components/ui/empty";
 import { documentAPI } from "@/lib/api";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 10;
 
@@ -48,6 +59,36 @@ function formatSize(bytes) {
   if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
   if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+}
+
+function getStatusIcon(status) {
+  switch (status) {
+    case "READY":
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    case "PROCESSING":
+      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+    case "FAILED":
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    default:
+      return <Clock className="h-4 w-4 text-yellow-500" />;
+  }
+}
+
+function getStatusBadge(status) {
+  const variants = {
+    READY: "default",
+    PROCESSING: "secondary",
+    FAILED: "destructive",
+    PENDING: "outline",
+  };
+  return (
+    <Badge variant={variants[status] || "outline"} className="text-xs">
+      <span className="flex items-center gap-1">
+        {getStatusIcon(status)}
+        {status}
+      </span>
+    </Badge>
+  );
 }
 
 export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
@@ -60,37 +101,122 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [sortOrder, setSortOrder] = useState("desc");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [processingDocs, setProcessingDocs] = useState(new Set());
+  const pollIntervalRef = useRef(null);
+  const previousDocsStatusRef = useRef(new Map());
+
+  const fetchDocuments = useCallback(async (silent = false) => {
+    try {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
+
+      const response = await documentAPI.getAll();
+
+      if (response.documents) {
+        const newDocs = response.documents;
+
+        if (previousDocsStatusRef.current.size > 0) {
+          newDocs.forEach((doc) => {
+            const prevStatus = previousDocsStatusRef.current.get(doc.id);
+
+            if (prevStatus) {
+              if (prevStatus === "PROCESSING" && doc.status === "READY") {
+                toast.success(`"${doc.name}" is ready for chat`, {
+                  description: "Document processing completed successfully",
+                });
+              } else if (
+                prevStatus === "PROCESSING" &&
+                doc.status === "FAILED"
+              ) {
+                toast.error(`"${doc.name}" processing failed`, {
+                  description: "Please try uploading the document again",
+                });
+              } else if (
+                prevStatus !== "PROCESSING" &&
+                doc.status === "PROCESSING"
+              ) {
+                toast.info(`Processing "${doc.name}"`, {
+                  description: "This may take a few moments",
+                });
+              }
+            } else {
+              if (doc.status === "PROCESSING") {
+                toast.info(`Processing "${doc.name}"`, {
+                  description: "This may take a few moments",
+                });
+              }
+            }
+          });
+        }
+
+        const statusMap = new Map();
+        newDocs.forEach((doc) => {
+          statusMap.set(doc.id, doc.status);
+        });
+        previousDocsStatusRef.current = statusMap;
+
+        setDocs(newDocs);
+
+        if (!silent) {
+          setPage(1);
+        }
+
+        const processing = new Set(
+          newDocs.filter((d) => d.status === "PROCESSING").map((d) => d.id)
+        );
+        setProcessingDocs(processing);
+
+        return processing.size > 0;
+      }
+      return false;
+    } catch (err) {
+      console.error("Error fetching documents:", err);
+      if (!silent) {
+        setError(err.message);
+      }
+      return false;
+    } finally {
+      if (!silent) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
 
-    const fetchDocuments = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await documentAPI.getAll();
-        if (active) {
-          setDocs(response.documents || []);
-          setPage(1);
-        }
-      } catch (err) {
-        console.error("Error fetching documents:", err);
-        if (active) {
-          setError(err.message);
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+    const loadDocuments = async () => {
+      const hasProcessing = await fetchDocuments();
+
+      if (!active) return;
+
+      if (hasProcessing && !pollIntervalRef.current) {
+        console.log("Starting polling - found processing documents");
+        pollIntervalRef.current = setInterval(async () => {
+          const stillProcessing = await fetchDocuments(true);
+
+          if (!stillProcessing && pollIntervalRef.current) {
+            console.log("Stopping polling - no processing documents");
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+        }, 3000);
       }
     };
 
-    fetchDocuments();
+    loadDocuments();
 
     return () => {
       active = false;
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
     };
-  }, [refreshKey]);
+  }, [refreshKey, fetchDocuments]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -181,6 +307,32 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
     setDocumentToDelete(null);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const hasProcessing = await fetchDocuments();
+
+      if (hasProcessing && !pollIntervalRef.current) {
+        console.log("Starting polling after manual refresh");
+        pollIntervalRef.current = setInterval(async () => {
+          const stillProcessing = await fetchDocuments(true);
+
+          if (!stillProcessing && pollIntervalRef.current) {
+            console.log("Stopping polling - no processing documents");
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+        }, 3000);
+      }
+
+      toast.success("Documents refreshed");
+    } catch (err) {
+      toast.error("Failed to refresh documents");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     setSelectedIds(new Set());
   }, [page, searchQuery]);
@@ -197,6 +349,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                 </TableHead>
                 <TableHead className="w-[40%]">Document Name</TableHead>
                 <TableHead>Uploaded Date</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -303,6 +456,34 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   return (
     <TooltipProvider>
       <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {processingDocs.size > 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>{processingDocs.size} document(s) processing</span>
+              </div>
+            )}
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refresh documents</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {selectedIds.size > 0 && (
           <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
             <div className="text-sm font-medium">
@@ -352,6 +533,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Size</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -380,8 +562,29 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       {doc.name}
                     </Link>
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {new Date(doc.createdAt).toLocaleString()}
+                  </TableCell>
                   <TableCell>
-                    {new Date(doc.createdAt).toLocaleDateString()}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex">
+                          {getStatusBadge(doc.status)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {doc.status === "READY" &&
+                            "Document is ready for chat"}
+                          {doc.status === "PROCESSING" &&
+                            "Document is being processed"}
+                          {doc.status === "FAILED" &&
+                            "Document processing failed"}
+                          {doc.status === "PENDING" &&
+                            "Document is waiting to be processed"}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {formatSize(doc.size)}
@@ -390,22 +593,44 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                     <div className="flex items-center justify-end gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                            aria-label={`Chat about ${doc.name}`}
-                          >
-                            <Link
-                              href={`/chat?docId=${encodeURIComponent(doc.id)}`}
+                          {doc.status === "READY" ? (
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              aria-label={`Chat about ${doc.name}`}
+                            >
+                              <Link
+                                href={`/chat?docId=${encodeURIComponent(
+                                  doc.id
+                                )}`}
+                              >
+                                <MessageCircle className="mr-2 h-4 w-4" />
+                                Chat
+                              </Link>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              aria-label={`Chat about ${doc.name}`}
                             >
                               <MessageCircle className="mr-2 h-4 w-4" />
                               Chat
-                            </Link>
-                          </Button>
+                            </Button>
+                          )}
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Chat with this document</p>
+                          <p>
+                            {doc.status === "READY"
+                              ? "Chat with this document"
+                              : doc.status === "PROCESSING"
+                              ? "Document is being processed"
+                              : doc.status === "FAILED"
+                              ? "Document processing failed"
+                              : "Document is waiting to be processed"}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                       <Tooltip>
@@ -414,13 +639,18 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                             size="sm"
                             variant="outline"
                             onClick={() => handleDeleteClick(doc)}
+                            disabled={doc.status === "PROCESSING"}
                             aria-label={`Delete ${doc.name}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Delete document</p>
+                          <p>
+                            {doc.status === "PROCESSING"
+                              ? "Cannot delete while processing"
+                              : "Delete document"}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -455,34 +685,97 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       {doc.name}
                     </Link>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {new Date(doc.createdAt).toLocaleDateString()}
+                      {new Date(doc.createdAt).toLocaleString()}
                     </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      Size: {formatSize(doc.size)}
+                    <div className="mt-1 flex items-center gap-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex ">
+                            {getStatusBadge(doc.status)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {doc.status === "READY" &&
+                              "Document is ready for chat"}
+                            {doc.status === "PROCESSING" &&
+                              "Document is being processed"}
+                            {doc.status === "FAILED" &&
+                              "Document processing failed"}
+                            {doc.status === "PENDING" &&
+                              "Document is waiting to be processed"}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <span className="text-sm text-muted-foreground">
+                        {formatSize(doc.size)}
+                      </span>
                     </div>
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Button
-                    asChild
-                    size="sm"
-                    className="flex-1"
-                    variant="outline"
-                    aria-label={`Chat about ${doc.name}`}
-                  >
-                    <Link href={`/chat?docId=${encodeURIComponent(doc.id)}`}>
-                      <MessageCircle className="mr-2 h-4 w-4" />
-                      Chat
-                    </Link>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDeleteClick(doc)}
-                    aria-label={`Delete ${doc.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {doc.status === "READY" ? (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="flex-1"
+                          variant="outline"
+                          aria-label={`Chat about ${doc.name}`}
+                        >
+                          <Link
+                            href={`/chat?docId=${encodeURIComponent(doc.id)}`}
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4" />
+                            Chat
+                          </Link>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          variant="outline"
+                          disabled
+                          aria-label={`Chat about ${doc.name}`}
+                        >
+                          <MessageCircle className="mr-2 h-4 w-4" />
+                          Chat
+                        </Button>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {doc.status === "READY"
+                          ? "Chat with this document"
+                          : doc.status === "PROCESSING"
+                          ? "Document is being processed"
+                          : doc.status === "FAILED"
+                          ? "Document processing failed"
+                          : "Document is waiting to be processed"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteClick(doc)}
+                        disabled={doc.status === "PROCESSING"}
+                        aria-label={`Delete ${doc.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {doc.status === "PROCESSING"
+                          ? "Cannot delete while processing"
+                          : "Delete document"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
             </Card>

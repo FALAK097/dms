@@ -69,17 +69,26 @@ model Verification {
 }
 
 model Document {
-  id        String   @id @default(cuid())
-  name      String
-  size      Int
-  type      String
-  key       String   @unique
-  url       String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(cuid())
+  name          String
+  size          Int
+  type          String
+  key           String         @unique
+  url           String
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  extractedText String?        @db.Text
+  status        DocumentStatus @default(PENDING)
 
   @@index([userId])
   @@map("document")
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }

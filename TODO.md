@@ -12,10 +12,11 @@
 
 ## Document Parsing / OCR
 
-- [ ] Parse PDFs using `pdf-parse`
-- [ ] Fallback to Gemini OCR for non-text or failed parses
-- [ ] Store extracted text in `Document.extractedText`
-- [ ] Update document status to `READY` after successful parsing
+- [X] Gemini OCR
+- [X] Store extracted text in `Document.extractedText`
+- [X] Update document status to `READY` after successful parsing
+- [X] Update the status in UI, provide a refresh icon
+- [X] Show a toast with doc name once OCR of particular document is done
 
 ## Vector Embeddings / Semantic Search
 
@@ -34,9 +35,3 @@
 - [ ] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [ ] Implement streaming response and typing animation
 - [ ] Scroll to bottom on new messages
-
-## UX / Notifications
-
-- [ ] Show toast notifications for upload success/failure
-- [ ] Show spinner or skeleton while text extraction or embeddings generation is in progress
-- [ ] Display status badges in dashboard table

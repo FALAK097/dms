@@ -26,6 +26,8 @@ export async function GET() {
         size: true,
         type: true,
         url: true,
+        status: true,
+        extractedText: true,
         createdAt: true,
         updatedAt: true,
       },
