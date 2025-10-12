@@ -1,6 +1,7 @@
 "use client";
 
 import { Folder, Forward, MoreHorizontal, Trash2 } from "lucide-react";
+import Link from "next/link";
 
 import {
   DropdownMenu,
@@ -29,10 +30,10 @@ export function NavGroups({ groups }) {
         {groups.map((item) => (
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
-              <a href={item.url}>
+              <Link href={item.url}>
                 <item.icon />
                 <span>{item.name}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

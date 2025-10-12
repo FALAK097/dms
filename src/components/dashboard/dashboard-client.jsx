@@ -9,8 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UploadDialog } from "@/components/upload-dialog";
-import { DocumentTable } from "@/components/document-table";
+import { UploadDialog } from "@/components/dashboard/upload-dialog";
+import { DocumentTable } from "@/components/dashboard/document-table";
 
 export function DashboardClient() {
   const [query, setQuery] = useState("");
