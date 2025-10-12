@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 const PAGE_SIZE = 10;
 
@@ -147,18 +147,20 @@ export function DocumentTable({
         </div>
         <div className="md:hidden grid gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i} className="p-4">
-              <div className="flex items-start justify-between">
-                <Skeleton className="h-5 w-44" />
-                <Skeleton className="h-5 w-16 rounded-md" />
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-4 w-20 justify-self-end" />
-              </div>
-              <div className="mt-4">
-                <Skeleton className="h-9 w-24" />
-              </div>
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <Skeleton className="h-5 w-44" />
+                  <Skeleton className="h-5 w-16 rounded-md" />
+                </div>
+                <div className="mt-3 space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="mt-4">
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              </CardContent>
             </Card>
           ))}
         </div>
@@ -168,11 +170,13 @@ export function DocumentTable({
 
   if (!filtered.length) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border p-10 text-center">
-        <div className="text-sm text-muted-foreground">
-          No documents found. Try adjusting your search or filter.
-        </div>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No documents found. Try adjusting your search or filter.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -223,39 +227,41 @@ export function DocumentTable({
       {/* Mobile cards */}
       <div className="grid gap-3 md:hidden">
         {pageItems.map((doc) => (
-          <Card key={doc.id} className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="font-medium truncate">{doc.name}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {new Date(doc.uploadedAt).toLocaleDateString()}
+          <Card key={doc.id}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{doc.name}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {new Date(doc.uploadedAt).toLocaleDateString()}
+                  </div>
                 </div>
+                {statusBadge(doc.status)}
               </div>
-              {statusBadge(doc.status)}
-            </div>
-            <div className="mt-3 text-sm text-muted-foreground">
-              Size: {formatSize(doc.size)}
-            </div>
-            <div className="mt-4">
-              <Button
-                asChild
-                size="sm"
-                className="w-full"
-                variant="outline"
-                aria-label={`Chat about ${doc.name}`}
-              >
-                <Link href={`/chat?docId=${encodeURIComponent(doc.id)}`}>
-                  <MessageCircle className="mr-2 h-4 w-4" />
-                  Chat
-                </Link>
-              </Button>
-            </div>
+              <div className="mt-3 text-sm text-muted-foreground">
+                Size: {formatSize(doc.size)}
+              </div>
+              <div className="mt-4">
+                <Button
+                  asChild
+                  size="sm"
+                  className="w-full"
+                  variant="outline"
+                  aria-label={`Chat about ${doc.name}`}
+                >
+                  <Link href={`/chat?docId=${encodeURIComponent(doc.id)}`}>
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Chat
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
           Showing {start + 1}-{Math.min(start + PAGE_SIZE, filtered.length)} of{" "}
           {filtered.length}

@@ -152,7 +152,7 @@ export function ChatWindow({ docId }) {
             variant="ghost"
             size="icon"
             className="md:hidden shrink-0"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/dashboard")}
             aria-label="Back to dashboard"
           >
             <ArrowLeft className="h-5 w-5" />

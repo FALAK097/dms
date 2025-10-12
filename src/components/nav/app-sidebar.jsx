@@ -5,7 +5,7 @@ import { LayoutDashboard, MessageCircle } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavGroups } from "./nav-groups";
-import { ThemeToggle } from "../theme-toggle";
+import { UserNav } from "./user-nav";
 import {
   Sidebar,
   SidebarContent,
@@ -26,7 +26,7 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "/",
+      url: "/dashboard",
       icon: LayoutDashboard,
       isActive: true,
     },
@@ -48,7 +48,7 @@ export function AppSidebar({ children, ...props }) {
           <NavGroups groups={data.groups} />
         </SidebarContent>
         <SidebarFooter>
-          <ThemeToggle />
+          <UserNav />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>

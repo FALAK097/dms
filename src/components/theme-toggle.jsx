@@ -9,8 +9,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useSidebar } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
-export const ThemeToggle = () => {
+export const ThemeToggle = ({ compact = false }) => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { state } = useSidebar();
@@ -23,13 +24,26 @@ export const ThemeToggle = () => {
   const Icon = isDark ? Sun : Moon;
   const label = isDark ? "Light Mode" : "Dark Mode";
 
+  if (compact) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8"
+        onClick={() => setTheme(isDark ? "light" : "dark")}
+      >
+        <Icon className="h-4 w-4" />
+        <span className="sr-only">{label}</span>
+      </Button>
+    );
+  }
+
   const button = (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className="text-sidebar-foreground hover:text-sidebar-accent-foreground w-full flex items-center justify-center gap-2 text-sm py-3 border-t group-data-[state=collapsed]:border-0 group-data-[state=collapsed]:justify-start group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:py-2"
     >
       <Icon size={18} />
-      <span className="group-data-[state=collapsed]:hidden">{label}</span>
     </button>
   );
 
