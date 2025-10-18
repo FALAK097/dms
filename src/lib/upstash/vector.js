@@ -1,11 +1,12 @@
 import { Index } from "@upstash/vector";
-import { embedMany } from "ai";
+import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getEncoding } from "js-tiktoken";
 
 export const vectorIndex = Index.fromEnv();
 
-const embeddingModel = openai.embedding("text-embedding-ada-002");
+// const embeddingModel = openai.embedding("text-embedding-ada-002");
+const embeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
 
 function generateChunks(input, maxTokens = 600, overlapTokens = 100) {
@@ -114,6 +115,15 @@ async function generateEmbeddings(value) {
   }));
 }
 
+async function generateEmbedding(value) {
+  const input = value.replaceAll("\\n", " ");
+  const { embedding } = await embed({
+    model: embeddingModel,
+    value: input,
+  });
+  return embedding;
+}
+
 export async function upsertEmbeddings(resourceId, content, documentName) {
   try {
     if (!content || content.trim().length === 0) {
@@ -158,5 +168,34 @@ export async function upsertEmbeddings(resourceId, content, documentName) {
       chunkCount: 0,
       error: error.message || "Failed to upsert embeddings",
     };
+  }
+}
+
+export async function findRelevantContent(query, docId = null, topK = 5) {
+  try {
+    const queryEmbedding = await generateEmbedding(query);
+
+    const queryOptions = {
+      vector: queryEmbedding,
+      topK,
+      includeMetadata: true,
+    };
+
+    if (docId) {
+      queryOptions.filter = `resourceId = "${docId}"`;
+    }
+
+    const results = await vectorIndex.query(queryOptions);
+
+    return results.map((result) => ({
+      content: result.metadata?.content || "",
+      documentName: result.metadata?.documentName || "Unknown",
+      chunkIndex: result.metadata?.chunkIndex || 0,
+      score: result.score || 0,
+      resourceId: result.metadata?.resourceId || "",
+    }));
+  } catch (error) {
+    console.error("Error finding relevant content:", error);
+    return [];
   }
 }

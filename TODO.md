@@ -23,18 +23,22 @@
 - [X] Split extracted text into chunks (~500–1000 tokens)
 - [X] Generate embeddings using custom Openai embedding models
 - [X] Store chunks and embeddings in Upstash Vector DB
+- [X] Add vector deletion when user deletes a document
 - [X] Mark `Document.embeddingsDone = true` after embeddings are stored
 
 ## Chat Functionality
 
+- [X] Implement sending messages to Vercel AI SDK (GPT-4o-mini)
+- [X] Initial Vercel AI SDK, Upstash Vector chat setup
 - [ ] Load all chats for the current user in sidebar (`Chat` table)
 - [ ] Create new chat linked to a document when clicking “Chat” on a document row
-- [ ] Implement sending messages to Vercel AI SDK (GPT-4o-mini)
 - [ ] Pass top relevant chunks as context to AI for document-specific questions
 - [ ] Show attached doc for reference in chat
 - [ ] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [ ] Implement streaming response and typing animation
 - [ ] Scroll to bottom on new messages
+- [ ] Add Upstash Redis for caching recent searches
+- [ ] Avoid vector search for generic questions
 
 ## Integrations
 
@@ -51,3 +55,6 @@
 - [ ] Create a landing page
 - [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Add Upstash Search for dashboard search
+- [ ] Add pagination & chunking optimizations
+- [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
+- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)

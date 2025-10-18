@@ -1,13 +1,12 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
-export function ChatInput({ onSend, disabled = false }) {
-  const [value, setValue] = useState("");
+export function ChatInput({ value, onChange, disabled = false }) {
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -20,16 +19,10 @@ export function ChatInput({ onSend, disabled = false }) {
     textarea.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
   }, [value]);
 
-  const handleSubmit = () => {
-    if (!value.trim() || disabled) return;
-    onSend(value);
-    setValue("");
-  };
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      e.currentTarget.form?.requestSubmit();
     }
   };
 
@@ -38,7 +31,7 @@ export function ChatInput({ onSend, disabled = false }) {
       <Textarea
         ref={textareaRef}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={onChange}
         onKeyDown={handleKeyDown}
         placeholder={
           disabled ? "Waiting for response..." : "Type your message..."
@@ -52,8 +45,8 @@ export function ChatInput({ onSend, disabled = false }) {
         aria-label="Chat message"
       />
       <Button
-        onClick={handleSubmit}
-        disabled={!value.trim() || disabled}
+        type="submit"
+        disabled={!value?.trim() || disabled}
         size="icon"
         className="h-11 w-11 shrink-0"
         aria-label="Send message"
