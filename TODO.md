@@ -20,10 +20,10 @@
 
 ## Vector Embeddings / Semantic Search
 
-- [ ] Split extracted text into chunks (~500–1000 tokens)
-- [ ] Generate embeddings using OpenAI embeddings (or chosen embedding model)
-- [ ] Store chunks and embeddings in Upstash Vector DB
-- [ ] Mark `Document.embeddingsDone = true` after embeddings are stored
+- [X] Split extracted text into chunks (~500–1000 tokens)
+- [X] Generate embeddings using custom Openai embedding models
+- [X] Store chunks and embeddings in Upstash Vector DB
+- [X] Mark `Document.embeddingsDone = true` after embeddings are stored
 
 ## Chat Functionality
 
@@ -35,3 +35,19 @@
 - [ ] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [ ] Implement streaming response and typing animation
 - [ ] Scroll to bottom on new messages
+
+## Integrations
+
+- [ ] Add Dropbox Integration
+- [ ] Add Drive Integration
+
+## Additional Changes
+
+- [ ] Add Uploadthing & DO Spaces both options for document storing
+- [ ] Create a DB in Neon or Supabase or PlanetScale
+- [ ] Deploy to vercel under subdomain
+- [ ] Add OTP Verification
+- [ ] Add google login option
+- [ ] Create a landing page
+- [ ] Integrate QStash to queue background OCR/embedding jobs
+- [ ] Add Upstash Search for dashboard search

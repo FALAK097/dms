@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFromSpaces } from "@/lib/storage";
+import { vectorIndex } from "@/lib/upstash/vector";
 
 export async function DELETE(request, { params }) {
   try {
@@ -32,6 +33,18 @@ export async function DELETE(request, { params }) {
     }
 
     await deleteFromSpaces(document.key);
+
+    if (document.embeddingsDone && document.chunkCount > 0) {
+      try {
+        const vectorIds = Array.from(
+          { length: document.chunkCount },
+          (_, i) => `${id}-${i}`
+        );
+        await vectorIndex.delete(vectorIds);
+      } catch (vectorError) {
+        console.error("Failed to delete vectors:", vectorError);
+      }
+    }
 
     await prisma.document.delete({
       where: { id },

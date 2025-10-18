@@ -69,18 +69,21 @@ model Verification {
 }
 
 model Document {
-  id            String         @id @default(cuid())
-  name          String
-  size          Int
-  type          String
-  key           String         @unique
-  url           String
-  userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  extractedText String?        @db.Text
-  status        DocumentStatus @default(PENDING)
+  id              String         @id @default(cuid())
+  name            String
+  size            Int
+  type            String
+  key             String         @unique
+  url             String
+  userId          String
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  extractedText   String?        @db.Text
+  status          DocumentStatus @default(PENDING)
+  embeddingsDone  Boolean        @default(false)
+  embeddingsError String?        @db.Text
+  chunkCount      Int?
 
   @@index([userId])
   @@map("document")

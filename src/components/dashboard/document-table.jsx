@@ -105,6 +105,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   const [processingDocs, setProcessingDocs] = useState(new Set());
   const pollIntervalRef = useRef(null);
   const previousDocsStatusRef = useRef(new Map());
+  const initialLoadRef = useRef(true);
 
   const fetchDocuments = useCallback(async (silent = false) => {
     try {
@@ -118,7 +119,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
       if (response.documents) {
         const newDocs = response.documents;
 
-        if (previousDocsStatusRef.current.size > 0) {
+        if (!initialLoadRef.current && previousDocsStatusRef.current.size > 0) {
           newDocs.forEach((doc) => {
             const prevStatus = previousDocsStatusRef.current.get(doc.id);
 
@@ -132,20 +133,9 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                 doc.status === "FAILED"
               ) {
                 toast.error(`"${doc.name}" processing failed`, {
-                  description: "Please try uploading the document again",
-                });
-              } else if (
-                prevStatus !== "PROCESSING" &&
-                doc.status === "PROCESSING"
-              ) {
-                toast.info(`Processing "${doc.name}"`, {
-                  description: "This may take a few moments",
-                });
-              }
-            } else {
-              if (doc.status === "PROCESSING") {
-                toast.info(`Processing "${doc.name}"`, {
-                  description: "This may take a few moments",
+                  description:
+                    doc.embeddingsError ||
+                    "Please try uploading the document again",
                 });
               }
             }
@@ -168,6 +158,10 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
           newDocs.filter((d) => d.status === "PROCESSING").map((d) => d.id)
         );
         setProcessingDocs(processing);
+
+        if (initialLoadRef.current) {
+          initialLoadRef.current = false;
+        }
 
         return processing.size > 0;
       }
@@ -193,13 +187,15 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
 
       if (!active) return;
 
-      if (hasProcessing && !pollIntervalRef.current) {
-        console.log("Starting polling - found processing documents");
+      if (hasProcessing) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+
         pollIntervalRef.current = setInterval(async () => {
           const stillProcessing = await fetchDocuments(true);
 
           if (!stillProcessing && pollIntervalRef.current) {
-            console.log("Stopping polling - no processing documents");
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
@@ -312,13 +308,15 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
     try {
       const hasProcessing = await fetchDocuments();
 
-      if (hasProcessing && !pollIntervalRef.current) {
-        console.log("Starting polling after manual refresh");
+      if (hasProcessing) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+        }
+
         pollIntervalRef.current = setInterval(async () => {
           const stillProcessing = await fetchDocuments(true);
 
           if (!stillProcessing && pollIntervalRef.current) {
-            console.log("Stopping polling - no processing documents");
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
