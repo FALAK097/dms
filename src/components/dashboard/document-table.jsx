@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   FileText,
-  MessageCircle,
   Trash2,
   ArrowUpDown,
   Loader2,
@@ -367,8 +366,11 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   <TableCell>
                     <Skeleton className="h-4 w-16" />
                   </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-16" />
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Skeleton className="h-8 w-20 ml-auto" />
+                    <Skeleton className="h-9 w-9 ml-auto" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -379,16 +381,19 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <Skeleton className="h-5 w-44" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-                <div className="mt-3 space-y-2">
-                  <Skeleton className="h-4 w-28" />
-                  <Skeleton className="h-4 w-20" />
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-4 w-4 mt-1" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-44" />
+                    <Skeleton className="h-3 w-28" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-4">
-                  <Skeleton className="h-9 w-full" />
+                  <Skeleton className="h-9 w-9" />
                 </div>
               </CardContent>
             </Card>
@@ -591,48 +596,6 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                     <div className="flex items-center justify-end gap-2">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          {doc.status === "READY" ? (
-                            <Button
-                              asChild
-                              size="sm"
-                              variant="outline"
-                              aria-label={`Chat about ${doc.name}`}
-                            >
-                              <Link
-                                href={`/chat?docId=${encodeURIComponent(
-                                  doc.id
-                                )}`}
-                              >
-                                <MessageCircle className="mr-2 h-4 w-4" />
-                                Chat
-                              </Link>
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              disabled
-                              aria-label={`Chat about ${doc.name}`}
-                            >
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              Chat
-                            </Button>
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {doc.status === "READY"
-                              ? "Chat with this document"
-                              : doc.status === "PROCESSING"
-                              ? "Document is being processed"
-                              : doc.status === "FAILED"
-                              ? "Document processing failed"
-                              : "Document is waiting to be processed"}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
                           <Button
                             size="sm"
                             variant="outline"
@@ -714,54 +677,13 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                 <div className="mt-4 flex gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      {doc.status === "READY" ? (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="flex-1"
-                          variant="outline"
-                          aria-label={`Chat about ${doc.name}`}
-                        >
-                          <Link
-                            href={`/chat?docId=${encodeURIComponent(doc.id)}`}
-                          >
-                            <MessageCircle className="mr-2 h-4 w-4" />
-                            Chat
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button
-                          size="sm"
-                          className="flex-1"
-                          variant="outline"
-                          disabled
-                          aria-label={`Chat about ${doc.name}`}
-                        >
-                          <MessageCircle className="mr-2 h-4 w-4" />
-                          Chat
-                        </Button>
-                      )}
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {doc.status === "READY"
-                          ? "Chat with this document"
-                          : doc.status === "PROCESSING"
-                          ? "Document is being processed"
-                          : doc.status === "FAILED"
-                          ? "Document processing failed"
-                          : "Document is waiting to be processed"}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteClick(doc)}
                         disabled={doc.status === "PROCESSING"}
                         aria-label={`Delete ${doc.name}`}
+                        className="flex-1"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

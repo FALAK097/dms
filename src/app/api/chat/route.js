@@ -15,7 +15,7 @@ function loadPrompts() {
   return yaml.load(fileContents);
 }
 
-function buildRAGPrompt(userMessage, contextChunks, documentName, prompts) {
+function buildRAGPrompt(userMessage, contextChunks, prompts) {
   if (contextChunks.length === 0) {
     return prompts.no_context_response;
   }
@@ -29,14 +29,10 @@ function buildRAGPrompt(userMessage, contextChunks, documentName, prompts) {
     .join("\n\n");
 
   const contextSection = prompts.context_template
-    .replace("{documentName}", documentName || "your documents")
+    .replace("{documentName}", "your documents")
     .replace("{chunks}", chunksText);
 
-  const systemPrompt = documentName
-    ? prompts.system.document_chat
-    : prompts.system.global_chat;
-
-  return `${systemPrompt}\n\n${contextSection}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+  return `${prompts.system.global_chat}\n\n${contextSection}\n\nUser Question: ${userMessage}\n\nAnswer:`;
 }
 
 export async function POST(request) {
@@ -49,7 +45,8 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { messages, docId } = await request.json();
+    const body = await request.json();
+    const { messages, conversationId } = body;
 
     if (!messages || messages.length === 0) {
       return NextResponse.json(
@@ -61,66 +58,102 @@ export async function POST(request) {
     const lastMessage = messages[messages.length - 1];
     const userMessage = lastMessage.parts?.[0]?.text || lastMessage.content;
 
-    if (docId) {
-      const document = await prisma.document.findUnique({
-        where: { id: docId },
-        select: {
-          userId: true,
-          status: true,
-          embeddingsDone: true,
-          name: true,
-        },
+    let conversation;
+    let isNewConversation = false;
+
+    if (
+      conversationId &&
+      conversationId !== "null" &&
+      conversationId !== "undefined"
+    ) {
+      conversation = await prisma.conversation.findUnique({
+        where: { id: conversationId },
       });
 
-      if (!document) {
+      if (!conversation) {
         return NextResponse.json(
-          { error: "Document not found" },
+          { error: "Conversation not found" },
           { status: 404 }
         );
       }
 
-      if (document.userId !== session.user.id) {
+      if (conversation.userId !== session.user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-
-      if (document.status !== "READY" || !document.embeddingsDone) {
-        return NextResponse.json(
-          { error: "Document not ready for chat" },
-          { status: 400 }
-        );
-      }
+    } else {
+      conversation = await prisma.conversation.create({
+        data: {
+          userId: session.user.id,
+          title: "New Chat",
+        },
+      });
+      isNewConversation = true;
     }
 
-    const contextChunks = await findRelevantContent(userMessage, docId, 5);
+    await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "USER",
+        content: userMessage,
+      },
+    });
 
-    const documentName = docId
-      ? contextChunks[0]?.documentName || "Document"
-      : null;
+    const contextChunks = await findRelevantContent(userMessage, null, 5);
 
     const prompts = loadPrompts();
-    const prompt = buildRAGPrompt(
-      userMessage,
-      contextChunks,
-      documentName,
-      prompts
-    );
+    const prompt = buildRAGPrompt(userMessage, contextChunks, prompts);
 
-    const sources = contextChunks.map((chunk, i) => ({
-      index: i + 1,
-      documentName: chunk.documentName,
-      chunkIndex: chunk.chunkIndex,
-      score: chunk.score,
-      content: chunk.content.substring(0, 200) + "...",
-      documentId: chunk.documentId,
-    }));
+    const sources =
+      contextChunks.length > 0
+        ? [
+            {
+              documentName: contextChunks[0].documentName,
+              documentId: contextChunks[0].documentId,
+            },
+          ]
+        : [];
 
     const result = streamText({
       model: openai("gpt-4o-mini"),
       prompt: prompt,
+      async onFinish({ text }) {
+        try {
+          await prisma.message.create({
+            data: {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: text,
+              sources: sources.length > 0 ? sources : null,
+            },
+          });
+
+          if (isNewConversation) {
+            const appUrl =
+              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+            setTimeout(() => {
+              fetch(
+                `${appUrl}/api/conversations/${conversation.id}/generate-title`,
+                {
+                  method: "POST",
+                  headers: {
+                    Cookie: request.headers.get("cookie") || "",
+                  },
+                }
+              ).catch((err) => console.error("Failed to generate title:", err));
+            }, 100);
+          }
+        } catch (error) {
+          console.error("Error saving assistant message:", error);
+        }
+      },
     });
 
     return result.toUIMessageStreamResponse({
-      getMessageAnnotations: () => ({ sources }),
+      messageMetadata: () => ({
+        sources,
+        conversationId: conversation.id,
+      }),
     });
   } catch (error) {
     console.error("Chat API error:", error);

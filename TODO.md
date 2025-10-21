@@ -30,15 +30,15 @@
 
 - [X] Implement sending messages to Vercel AI SDK (GPT-4o-mini)
 - [X] Initial Vercel AI SDK, Upstash Vector chat setup
-- [ ] Load all chats for the current user in sidebar (`Chat` table)
-- [ ] Create new chat linked to a document when clicking “Chat” on a document row
-- [ ] Pass top relevant chunks as context to AI for document-specific questions
+- [X] Load all chats for the current user in sidebar (`Chat` table)
+- [X] Save all messages in `Message` table (`USER` / `ASSISTANT`)
+- [X] Store all conversations and add `zustand` for state management
 - [ ] Show attached doc for reference in chat
-- [ ] Save all messages in `Message` table (`USER` / `ASSISTANT`)
-- [ ] Implement streaming response and typing animation
+- [ ] Implement streaming response and typing, thinking animation
 - [ ] Scroll to bottom on new messages
 - [ ] Add Upstash Redis for caching recent searches
 - [ ] Avoid vector search for generic questions
+- [ ] Improve Prompt for better response
 
 ## Integrations
 
@@ -47,14 +47,14 @@
 
 ## Additional Changes
 
+- [ ] Integrate QStash to queue background OCR/embedding jobs
+- [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
+- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
 - [ ] Add Uploadthing & DO Spaces both options for document storing
 - [ ] Create a DB in Neon or Supabase or PlanetScale
 - [ ] Deploy to vercel under subdomain
 - [ ] Add OTP Verification
 - [ ] Add google login option
 - [ ] Create a landing page
-- [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Add Upstash Search for dashboard search
 - [ ] Add pagination & chunking optimizations
-- [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
-- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)

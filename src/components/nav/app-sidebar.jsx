@@ -6,6 +6,8 @@ import { LayoutDashboard, MessageCircle } from "lucide-react";
 import { NavMain } from "./nav-main";
 import { NavGroups } from "./nav-groups";
 import { UserNav } from "./user-nav";
+import { NewChatButton } from "@/components/chat/new-chat-button";
+import { ConversationList } from "@/components/chat/conversation-list";
 import {
   Sidebar,
   SidebarContent,
@@ -45,6 +47,8 @@ export function AppSidebar({ children, ...props }) {
       <Sidebar collapsible="icon" {...props}>
         <SidebarContent>
           <NavMain items={data.navMain} />
+          <NewChatButton />
+          <ConversationList />
           <NavGroups groups={data.groups} />
         </SidebarContent>
         <SidebarFooter>

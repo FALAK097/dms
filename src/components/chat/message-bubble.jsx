@@ -1,33 +1,20 @@
 "use client";
 
+import { Bot, User } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Bot, User, ExternalLink } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 
 export function MessageBubble({ message, isStreaming = false }) {
-  const [sourcesOpen, setSourcesOpen] = useState(false);
-  const router = useRouter();
   const isUser = message.role === "user";
 
-  const sources = message.annotations?.sources || message.data?.sources || [];
+  const sources = message.metadata?.sources || [];
 
-  const textPart = message.parts?.find((part) => part.type === "text");
-  let messageContent = textPart?.text || message.content || "";
-
-  messageContent = messageContent.replace(/\*\*(.*?)\*\*/g, "$1");
-
-  const handleSourceClick = (documentId) => {
-    if (documentId) {
-      router.push(`/dashboard/documents/${documentId}`);
-    }
-  };
+  const messageContent =
+    message.parts
+      ?.map((part) => (part.type === "text" ? part.text : ""))
+      .join("") ||
+    message.content ||
+    "";
 
   return (
     <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
@@ -45,50 +32,23 @@ export function MessageBubble({ message, isStreaming = false }) {
             : "bg-muted text-foreground"
         )}
       >
-        <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+        <div className="max-w-none break-words">
           <p className="whitespace-pre-wrap m-0">{messageContent}</p>
           {isStreaming && (
             <span className="inline-block w-2 h-4 ml-1 bg-current animate-pulse" />
           )}
         </div>
 
-        {!isUser && sources.length > 0 && (
-          <Collapsible open={sourcesOpen} onOpenChange={setSourcesOpen}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
-              >
-                {sourcesOpen ? "Hide" : "View"} sources ({sources.length})
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <div className="space-y-2 text-xs">
-                {sources.map((source, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSourceClick(source.documentId)}
-                    className="w-full text-left rounded border bg-background/50 p-2 space-y-1 hover:bg-background transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-1 font-medium">
-                      <span>
-                        [{source.index}] {source.documentName}
-                      </span>
-                      <ExternalLink className="h-3 w-3" />
-                    </div>
-                    <div className="text-muted-foreground line-clamp-2">
-                      {source.content}
-                    </div>
-                    <div className="text-muted-foreground">
-                      Chunk {source.chunkIndex} • Relevance:{" "}
-                      {(source.score * 100).toFixed(1)}%
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+        {!isUser && sources.length > 0 && sources[0]?.documentId && (
+          <div className="mt-2 pt-2 border-t border-border/50">
+            <Link
+              href={`/dashboard/documents/${sources[0].documentId}`}
+              target="_blank"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              View Source
+            </Link>
+          </div>
         )}
       </div>
 

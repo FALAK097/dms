@@ -52,4 +52,31 @@ export const documentAPI = {
   },
 };
 
+export const conversationAPI = {
+  getAll: async () => {
+    const response = await api.get("/conversations");
+    return response.data;
+  },
+
+  getById: async (id) => {
+    const response = await api.get(`/conversations/${id}`);
+    return response.data;
+  },
+
+  create: async () => {
+    const response = await api.post("/conversations");
+    return response.data;
+  },
+
+  updateTitle: async (id, title) => {
+    const response = await api.patch(`/conversations/${id}`, { title });
+    return response.data;
+  },
+
+  delete: async (id) => {
+    const response = await api.delete(`/conversations/${id}`);
+    return response.data;
+  },
+};
+
 export default api;
