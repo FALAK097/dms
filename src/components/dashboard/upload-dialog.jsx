@@ -22,7 +22,6 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { documentAPI } from "@/lib/api";
 
@@ -44,7 +43,6 @@ export function UploadDialog({ onComplete }) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const folderInputRef = useRef(null);
 
   const addFiles = useCallback((incoming = []) => {
@@ -92,16 +90,8 @@ export function UploadDialog({ onComplete }) {
 
   const startUpload = async () => {
     setUploading(true);
-    setProgress(0);
-
     try {
-      const result = await documentAPI.upload(files, (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total
-        );
-        setProgress(percentCompleted);
-      });
-
+      const result = await documentAPI.upload(files);
       setFiles([]);
       setOpen(false);
       toast.success(`Successfully uploaded ${result.count} file(s)`);
@@ -114,7 +104,6 @@ export function UploadDialog({ onComplete }) {
       });
     } finally {
       setUploading(false);
-      setProgress(0);
     }
   };
 
@@ -237,16 +226,6 @@ export function UploadDialog({ onComplete }) {
           ) : (
             <div className="text-sm text-muted-foreground">
               No files selected.
-            </div>
-          )}
-
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading...
-              </div>
-              <Progress value={progress} className="w-full" />
             </div>
           )}
         </div>

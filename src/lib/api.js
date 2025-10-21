@@ -36,8 +36,14 @@ export const documentAPI = {
     return response.data;
   },
 
-  getAll: async () => {
-    const response = await api.get("/documents");
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append("page", params.page);
+    if (params.limit) queryParams.append("limit", params.limit);
+    if (params.search) queryParams.append("search", params.search);
+    if (params.sortOrder) queryParams.append("sortOrder", params.sortOrder);
+
+    const response = await api.get(`/documents?${queryParams.toString()}`);
     return response.data;
   },
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useQueryStates, parseAsInteger, parseAsString } from "nuqs";
 import Link from "next/link";
 import {
   FileText,
@@ -11,6 +12,7 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +43,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -51,7 +59,7 @@ import { documentAPI } from "@/lib/api";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 function formatSize(bytes) {
   if (bytes < 1024) return `${bytes} B`;
@@ -60,29 +68,55 @@ function formatSize(bytes) {
   return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
+function removeExtension(filename) {
+  return filename.replace(/\.pdf$/i, "");
+}
+
 function getStatusIcon(status) {
   switch (status) {
     case "READY":
-      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      return <CheckCircle2 className="h-3.5 w-3.5" />;
     case "PROCESSING":
-      return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
     case "FAILED":
-      return <XCircle className="h-4 w-4 text-red-500" />;
+      return <XCircle className="h-3.5 w-3.5" />;
     default:
-      return <Clock className="h-4 w-4 text-yellow-500" />;
+      return <Clock className="h-3.5 w-3.5" />;
   }
 }
 
 function getStatusBadge(status) {
-  const variants = {
-    READY: "default",
-    PROCESSING: "secondary",
-    FAILED: "destructive",
-    PENDING: "outline",
+  const configs = {
+    READY: {
+      variant: "default",
+      className:
+        "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 hover:bg-green-500/20",
+    },
+    PROCESSING: {
+      variant: "secondary",
+      className:
+        "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20",
+    },
+    FAILED: {
+      variant: "destructive",
+      className:
+        "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20",
+    },
+    PENDING: {
+      variant: "outline",
+      className:
+        "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+    },
   };
+
+  const config = configs[status] || configs.PENDING;
+
   return (
-    <Badge variant={variants[status] || "outline"} className="text-xs">
-      <span className="flex items-center gap-1">
+    <Badge
+      variant={config.variant}
+      className={`text-xs font-medium ${config.className}`}
+    >
+      <span className="flex items-center gap-1.5">
         {getStatusIcon(status)}
         {status}
       </span>
@@ -93,90 +127,124 @@ function getStatusBadge(status) {
 export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [error, setError] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [sortOrder, setSortOrder] = useState("desc");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [processingDocs, setProcessingDocs] = useState(new Set());
+  const [pagination, setPagination] = useState({
+    total: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 0,
+  });
+
   const pollIntervalRef = useRef(null);
   const previousDocsStatusRef = useRef(new Map());
   const initialLoadRef = useRef(true);
 
-  const fetchDocuments = useCallback(async (silent = false) => {
-    try {
-      if (!silent) {
-        setLoading(true);
-        setError(null);
-      }
+  const [urlState, setUrlState] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    limit: parseAsInteger.withDefault(10),
+    sort: parseAsString.withDefault("desc"),
+  });
 
-      const response = await documentAPI.getAll();
-
-      if (response.documents) {
-        const newDocs = response.documents;
-
-        if (!initialLoadRef.current && previousDocsStatusRef.current.size > 0) {
-          newDocs.forEach((doc) => {
-            const prevStatus = previousDocsStatusRef.current.get(doc.id);
-
-            if (prevStatus) {
-              if (prevStatus === "PROCESSING" && doc.status === "READY") {
-                toast.success(`"${doc.name}" is ready for chat`, {
-                  description: "Document processing completed successfully",
-                });
-              } else if (
-                prevStatus === "PROCESSING" &&
-                doc.status === "FAILED"
-              ) {
-                toast.error(`"${doc.name}" processing failed`, {
-                  description:
-                    doc.embeddingsError ||
-                    "Please try uploading the document again",
-                });
-              }
-            }
-          });
-        }
-
-        const statusMap = new Map();
-        newDocs.forEach((doc) => {
-          statusMap.set(doc.id, doc.status);
-        });
-        previousDocsStatusRef.current = statusMap;
-
-        setDocs(newDocs);
-
+  const fetchDocuments = useCallback(
+    async (silent = false) => {
+      try {
         if (!silent) {
-          setPage(1);
+          setLoading(true);
+          setError(null);
         }
 
-        const processing = new Set(
-          newDocs.filter((d) => d.status === "PROCESSING").map((d) => d.id)
-        );
-        setProcessingDocs(processing);
+        const response = await documentAPI.getAll({
+          page: urlState.page,
+          limit: urlState.limit,
+          search: searchQuery,
+          sortOrder: urlState.sort,
+        });
 
-        if (initialLoadRef.current) {
-          initialLoadRef.current = false;
+        if (response.documents && response.pagination) {
+          const newDocs = response.documents;
+
+          if (
+            !initialLoadRef.current &&
+            previousDocsStatusRef.current.size > 0
+          ) {
+            newDocs.forEach((doc) => {
+              const prevStatus = previousDocsStatusRef.current.get(doc.id);
+
+              if (prevStatus) {
+                if (prevStatus === "PENDING" && doc.status === "PROCESSING") {
+                  toast.info(`Processing "${removeExtension(doc.name)}"...`, {
+                    description: "Extracting text and generating embeddings",
+                  });
+                } else if (
+                  prevStatus === "PROCESSING" &&
+                  doc.status === "READY"
+                ) {
+                  toast.success(
+                    `"${removeExtension(doc.name)}" is ready for chat`,
+                    {
+                      description: "Document processing completed successfully",
+                    }
+                  );
+                } else if (
+                  prevStatus === "PROCESSING" &&
+                  doc.status === "FAILED"
+                ) {
+                  toast.error(
+                    `"${removeExtension(doc.name)}" processing failed`,
+                    {
+                      description:
+                        doc.embeddingsError ||
+                        "Please try uploading the document again",
+                    }
+                  );
+                }
+              }
+            });
+          }
+
+          const statusMap = new Map();
+          newDocs.forEach((doc) => {
+            statusMap.set(doc.id, doc.status);
+          });
+          previousDocsStatusRef.current = statusMap;
+
+          setDocs(newDocs);
+          setPagination(response.pagination);
+
+          const processing = new Set(
+            newDocs
+              .filter(
+                (d) => d.status === "PROCESSING" || d.status === "PENDING"
+              )
+              .map((d) => d.id)
+          );
+
+          if (initialLoadRef.current) {
+            initialLoadRef.current = false;
+          }
+
+          return processing.size > 0;
         }
-
-        return processing.size > 0;
+        return false;
+      } catch (err) {
+        console.error("Error fetching documents:", err);
+        if (!silent) {
+          setError(err.message);
+        }
+        return false;
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
       }
-      return false;
-    } catch (err) {
-      console.error("Error fetching documents:", err);
-      if (!silent) {
-        setError(err.message);
-      }
-      return false;
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
-    }
-  }, []);
+    },
+    [urlState.page, urlState.limit, urlState.sort, searchQuery]
+  );
 
   useEffect(() => {
     let active = true;
@@ -211,34 +279,31 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
         pollIntervalRef.current = null;
       }
     };
-  }, [refreshKey, fetchDocuments]);
+  }, [fetchDocuments, refreshKey]);
 
-  const filtered = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return docs
-      .filter((d) => (q ? d.name.toLowerCase().includes(q) : true))
-      .sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
-        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
-      });
-  }, [docs, searchQuery, sortOrder]);
+  useEffect(() => {
+    if (urlState.page !== 1) {
+      setUrlState({ page: 1 });
+    }
+  }, [searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+  const handlePageChange = (newPage) => {
+    setUrlState({ page: newPage });
+    setSelectedIds(new Set());
+  };
 
-  const onPrev = () => setPage((p) => Math.max(1, p - 1));
-  const onNext = () => setPage((p) => Math.min(totalPages, p + 1));
+  const handleLimitChange = (newLimit) => {
+    setUrlState({ page: 1, limit: newLimit });
+    setSelectedIds(new Set());
+  };
 
   const toggleSort = () => {
-    setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
+    setUrlState({ sort: urlState.sort === "desc" ? "asc" : "desc" });
   };
 
   const toggleSelectAll = (checked) => {
     if (checked) {
-      setSelectedIds(new Set(pageItems.map((doc) => doc.id)));
+      setSelectedIds(new Set(docs.map((doc) => doc.id)));
     } else {
       setSelectedIds(new Set());
     }
@@ -278,15 +343,14 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
         );
         await Promise.all(deletePromises);
         toast.success(`Successfully deleted ${selectedIds.size} document(s)`);
-        setDocs((prev) => prev.filter((d) => !selectedIds.has(d.id)));
         setSelectedIds(new Set());
       } else {
         await documentAPI.delete(documentToDelete.id);
         toast.success("Document deleted successfully");
-        setDocs((prev) => prev.filter((d) => d.id !== documentToDelete.id));
       }
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
+      await fetchDocuments();
     } catch (error) {
       console.error("Delete error:", error);
       toast.error("Failed to delete document(s)", {
@@ -305,23 +369,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const hasProcessing = await fetchDocuments();
-
-      if (hasProcessing) {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current);
-        }
-
-        pollIntervalRef.current = setInterval(async () => {
-          const stillProcessing = await fetchDocuments(true);
-
-          if (!stillProcessing && pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-            pollIntervalRef.current = null;
-          }
-        }, 3000);
-      }
-
+      await fetchDocuments();
       toast.success("Documents refreshed");
     } catch (err) {
       toast.error("Failed to refresh documents");
@@ -329,10 +377,6 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
       setIsRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    setSelectedIds(new Set());
-  }, [page, searchQuery]);
 
   if (loading) {
     return (
@@ -352,7 +396,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              {Array.from({ length: urlState.limit }).map((_, i) => (
                 <TableRow key={i}>
                   <TableCell>
                     <Skeleton className="h-4 w-4" />
@@ -419,7 +463,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
     );
   }
 
-  if (!filtered.length) {
+  if (!docs.length) {
     if (searchQuery) {
       return (
         <Empty className="border">
@@ -429,7 +473,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
             </EmptyMedia>
             <EmptyTitle>No documents found</EmptyTitle>
             <EmptyDescription>
-              No documents match your search. Try adjusting your search query.
+              No documents match your search query &quot;{searchQuery}&quot;
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
@@ -451,42 +495,18 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
     );
   }
 
-  const isAllSelected =
-    pageItems.length > 0 && selectedIds.size === pageItems.length;
-  const isSomeSelected =
-    selectedIds.size > 0 && selectedIds.size < pageItems.length;
+  const isAllSelected = docs.length > 0 && selectedIds.size === docs.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < docs.length;
+
+  const startItem = (pagination.page - 1) * pagination.limit + 1;
+  const endItem = Math.min(
+    pagination.page * pagination.limit,
+    pagination.total
+  );
 
   return (
     <TooltipProvider>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {processingDocs.size > 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{processingDocs.size} document(s) processing</span>
-              </div>
-            )}
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-                />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Refresh documents</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
         {selectedIds.size > 0 && (
           <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
             <div className="text-sm font-medium">
@@ -538,11 +558,32 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                 </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Size</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className="h-8 w-8"
+                      >
+                        <RefreshCw
+                          className={`h-4 w-4 ${
+                            isRefreshing ? "animate-spin" : ""
+                          }`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Refresh documents</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageItems.map((doc) => (
+              {docs.map((doc) => (
                 <TableRow key={doc.id}>
                   <TableCell>
                     <div className="flex items-center">
@@ -562,7 +603,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       rel="noopener noreferrer"
                       className="hover:text-primary hover:underline transition-colors block truncate max-w-md"
                     >
-                      {doc.name}
+                      {removeExtension(doc.name)}
                     </Link>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -623,7 +664,27 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
         </div>
 
         <div className="grid gap-3 md:hidden">
-          {pageItems.map((doc) => (
+          <div className="flex justify-end">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="h-9 w-9"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Refresh documents</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          {docs.map((doc) => (
             <Card key={doc.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -643,7 +704,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       rel="noopener noreferrer"
                       className="font-medium truncate block hover:text-primary hover:underline transition-colors"
                     >
-                      {doc.name}
+                      {removeExtension(doc.name)}
                     </Link>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {new Date(doc.createdAt).toLocaleString()}
@@ -703,28 +764,48 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">
-            Showing {start + 1}-{Math.min(start + PAGE_SIZE, filtered.length)}{" "}
-            of {filtered.length}
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">
+              Showing {startItem}-{endItem} of {pagination.total}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8">
+                  {urlState.limit} per page
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <DropdownMenuItem
+                    key={size}
+                    onClick={() => handleLimitChange(size)}
+                    className={urlState.limit === size ? "bg-accent" : ""}
+                  >
+                    {size} per page
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={onPrev}
-              disabled={currentPage === 1}
+              onClick={() => handlePageChange(urlState.page - 1)}
+              disabled={urlState.page === 1}
               aria-label="Previous page"
             >
               Previous
             </Button>
             <div className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
+              Page {pagination.page} of {pagination.totalPages}
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={onNext}
-              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(urlState.page + 1)}
+              disabled={urlState.page === pagination.totalPages}
               aria-label="Next page"
             >
               Next
@@ -744,7 +825,9 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
             <AlertDialogDescription>
               {documentToDelete?.bulk
                 ? `Are you sure you want to delete ${documentToDelete.count} document(s)? This action cannot be undone.`
-                : `Are you sure you want to delete "${documentToDelete?.name}"? This action cannot be undone.`}
+                : `Are you sure you want to delete "${removeExtension(
+                    documentToDelete?.name || ""
+                  )}"? This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

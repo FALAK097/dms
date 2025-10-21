@@ -34,11 +34,17 @@
 - [X] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [X] Store all conversations and add `zustand` for state management
 - [ ] Show attached doc for reference in chat
-- [ ] Implement streaming response and typing, thinking animation
-- [ ] Scroll to bottom on new messages
 - [ ] Add Upstash Redis for caching recent searches
 - [ ] Avoid vector search for generic questions
 - [ ] Improve Prompt for better response
+
+## Chore TODO's
+
+- [X] Add `nuqs` for state url management for documents table
+- [ ] Prevent duplicate document uploads
+- [ ] Add support of @ tag in chat to know about particular document
+- [ ] Implement streaming response and typing, thinking animation
+- [ ] Scroll to bottom on new messages
 
 ## Integrations
 
