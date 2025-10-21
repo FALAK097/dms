@@ -18,6 +18,7 @@ export function ChatWindow() {
   const [input, setInput] = useState("");
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   const {
     currentConversationId,
@@ -133,9 +134,14 @@ export function ChatWindow() {
       {
         body: {
           conversationId: conversationIdRef.current,
+          documentId: selectedDocument?.id || null,
         },
       }
     );
+  };
+
+  const handleDocumentSelect = (doc) => {
+    setSelectedDocument(doc);
   };
 
   const handleInputChange = (e) => {
@@ -198,6 +204,8 @@ export function ChatWindow() {
               value={input}
               onChange={handleInputChange}
               disabled={isLoading}
+              selectedDocument={selectedDocument}
+              onDocumentSelect={handleDocumentSelect}
             />
           </form>
         </div>

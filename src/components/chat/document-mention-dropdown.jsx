@@ -1,0 +1,145 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { documentAPI } from "@/lib/api";
+import { File, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadDocuments();
+    }
+  }, [isOpen]);
+
+  const loadDocuments = async () => {
+    setLoading(true);
+    try {
+      const response = await documentAPI.getAll({ limit: 50 });
+      setDocuments(response.documents || []);
+    } catch (error) {
+      console.error("Error loading documents:", error);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (!isOpen || documents.length === 0) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < documents.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev > 0 ? prev - 1 : documents.length - 1
+        );
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (documents[selectedIndex]) {
+          onSelect(documents[selectedIndex]);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        onSelect(null);
+        break;
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isOpen, selectedIndex, documents]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="absolute z-50 w-full max-w-md bg-popover border rounded-lg shadow-lg overflow-hidden"
+      style={{
+        bottom: position?.bottom || "100%",
+        left: position?.left || 0,
+        marginBottom: "8px",
+      }}
+    >
+      <div className="max-h-64 overflow-y-auto scrollbar-hide">
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : documents.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            No documents available
+          </div>
+        ) : (
+          <div className="p-1">
+            {documents.map((doc, index) => (
+              <button
+                key={doc.id}
+                onClick={() => onSelect(doc)}
+                className={cn(
+                  "w-full flex items-start gap-3 p-3 rounded-md text-left transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  selectedIndex === index && "bg-accent text-accent-foreground"
+                )}
+                onMouseEnter={() => setSelectedIndex(index)}
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10">
+                  <File className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium text-sm truncate">{doc.name}</p>
+                    {doc.status === "READY" ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+                      >
+                        Ready
+                      </Badge>
+                    ) : doc.status === "PROCESSING" ? (
+                      <Badge
+                        variant="outline"
+                        className="text-xs shrink-0 bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                      >
+                        Processing
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        {doc.status}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {(doc.size / 1024 / 1024).toFixed(2)} MB • {doc.type}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="p-2 border-t bg-muted/50 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <span>↑↓ Navigate • Enter Select • Esc Cancel</span>
+        </div>
+      </div>
+    </div>
+  );
+}

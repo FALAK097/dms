@@ -41,8 +41,8 @@
 ## Chore TODO's
 
 - [X] Add `nuqs` for state url management for documents table
+- [X] Add support of @ tag in chat to know about particular document
 - [ ] Prevent duplicate document uploads
-- [ ] Add support of @ tag in chat to know about particular document
 - [ ] Implement streaming response and typing, thinking animation
 - [ ] Scroll to bottom on new messages
 

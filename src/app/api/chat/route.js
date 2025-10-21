@@ -15,7 +15,12 @@ function loadPrompts() {
   return yaml.load(fileContents);
 }
 
-function buildRAGPrompt(userMessage, contextChunks, prompts) {
+function buildRAGPrompt(
+  userMessage,
+  contextChunks,
+  prompts,
+  documentName = null
+) {
   if (contextChunks.length === 0) {
     return prompts.no_context_response;
   }
@@ -28,8 +33,11 @@ function buildRAGPrompt(userMessage, contextChunks, prompts) {
     )
     .join("\n\n");
 
+  const docName =
+    documentName || contextChunks[0]?.documentName || "your documents";
+
   const contextSection = prompts.context_template
-    .replace("{documentName}", "your documents")
+    .replace("{documentName}", docName)
     .replace("{chunks}", chunksText);
 
   return `${prompts.system.global_chat}\n\n${contextSection}\n\nUser Question: ${userMessage}\n\nAnswer:`;
@@ -46,7 +54,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { messages, conversationId } = body;
+    const { messages, conversationId, documentId } = body;
 
     if (!messages || messages.length === 0) {
       return NextResponse.json(
@@ -57,6 +65,20 @@ export async function POST(request) {
 
     const lastMessage = messages[messages.length - 1];
     const userMessage = lastMessage.parts?.[0]?.text || lastMessage.content;
+
+    let selectedDocument = null;
+    if (documentId) {
+      selectedDocument = await prisma.document.findUnique({
+        where: { id: documentId, userId: session.user.id },
+      });
+
+      if (!selectedDocument) {
+        return NextResponse.json(
+          { error: "Document not found or access denied" },
+          { status: 404 }
+        );
+      }
+    }
 
     let conversation;
     let isNewConversation = false;
@@ -98,20 +120,41 @@ export async function POST(request) {
       },
     });
 
-    const contextChunks = await findRelevantContent(userMessage, null, 5);
+    const contextChunks = await findRelevantContent(
+      userMessage,
+      documentId || null,
+      5
+    );
 
     const prompts = loadPrompts();
-    const prompt = buildRAGPrompt(userMessage, contextChunks, prompts);
+    const prompt = buildRAGPrompt(
+      userMessage,
+      contextChunks,
+      prompts,
+      selectedDocument?.name
+    );
 
     const sources =
       contextChunks.length > 0
         ? [
             {
-              documentName: contextChunks[0].documentName,
-              documentId: contextChunks[0].documentId,
+              documentName:
+                selectedDocument?.name || contextChunks[0].documentName,
+              documentId: selectedDocument?.id || contextChunks[0].resourceId,
             },
           ]
         : [];
+
+    const messageMetadata = {
+      sources,
+      conversationId: conversation.id,
+      ...(selectedDocument && {
+        selectedDocument: {
+          id: selectedDocument.id,
+          name: selectedDocument.name,
+        },
+      }),
+    };
 
     const result = streamText({
       model: openai("gpt-4o-mini"),
@@ -150,10 +193,7 @@ export async function POST(request) {
     });
 
     return result.toUIMessageStreamResponse({
-      messageMetadata: () => ({
-        sources,
-        conversationId: conversation.id,
-      }),
+      messageMetadata: () => messageMetadata,
     });
   } catch (error) {
     console.error("Chat API error:", error);

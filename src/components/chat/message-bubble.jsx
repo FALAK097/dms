@@ -39,15 +39,29 @@ export function MessageBubble({ message, isStreaming = false }) {
           )}
         </div>
 
-        {!isUser && sources.length > 0 && sources[0]?.documentId && (
+        {!isUser && sources.length > 0 && (
           <div className="mt-2 pt-2 border-t border-border/50">
-            <Link
-              href={`/dashboard/documents/${sources[0].documentId}`}
-              target="_blank"
-              className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              View Source
-            </Link>
+            <div className="text-xs text-muted-foreground mb-1">
+              {sources.length === 1 ? "Source:" : "Sources:"}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sources.map((source, index) =>
+                source?.documentId ? (
+                  <Link
+                    key={`${source.documentId}-${index}`}
+                    href={`/dashboard?documentId=${source.documentId}`}
+                    target="_blank"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {source.documentName || "View Document"}
+                  </Link>
+                ) : (
+                  <span key={index} className="text-xs text-muted-foreground">
+                    {source.documentName || "Unknown"}
+                  </span>
+                )
+              )}
+            </div>
           </div>
         )}
       </div>
