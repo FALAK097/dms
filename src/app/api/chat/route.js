@@ -20,10 +20,23 @@ function buildRAGPrompt(
   userMessage,
   contextChunks,
   prompts,
+  conversationHistory = [],
   documentName = null
 ) {
+  let conversationContext = "";
+  if (conversationHistory.length > 1) {
+    const previousMessages = conversationHistory.slice(0, -1);
+    conversationContext = "\n\nPrevious Conversation:\n";
+    previousMessages.forEach((msg) => {
+      const role = msg.role === "USER" ? "User" : "Assistant";
+      conversationContext += `${role}: ${msg.content}\n`;
+    });
+    conversationContext +=
+      "\nREMINDER: Continue responding in PLAIN TEXT only. NO markdown formatting (no **, ##, *, etc.).\n";
+  }
+
   if (contextChunks.length === 0) {
-    return `${prompts.no_context_response}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nAnswer:`;
   }
 
   const validChunks = contextChunks.filter(
@@ -35,7 +48,7 @@ function buildRAGPrompt(
   );
 
   if (validChunks.length === 0) {
-    return `${prompts.no_context_response}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nAnswer:`;
   }
 
   const chunksText = validChunks
@@ -53,7 +66,7 @@ function buildRAGPrompt(
     .replace("{documentName}", docName)
     .replace("{chunks}", chunksText);
 
-  return `${prompts.system.global_chat}\n\n${contextSection}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+  return `${prompts.system.global_chat}\n\n${contextSection}${conversationContext}\n\nUser Question: ${userMessage}\n\nIMPORTANT: Provide your answer in PLAIN TEXT format only. Do NOT use ** for bold, ## for headings, or any markdown syntax.\n\nAnswer:`;
 }
 
 export async function POST(request) {
@@ -133,23 +146,20 @@ export async function POST(request) {
       },
     });
 
+    const conversationHistory = await prisma.message.findMany({
+      where: {
+        conversationId: conversation.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      take: 20,
+    });
+
     const contextChunks = await findRelevantContent(
       userMessage,
       documentId || null,
       8
-    );
-
-    console.log("Context chunks retrieved:", contextChunks.length);
-    console.log(
-      "Chunks details:",
-      contextChunks.map((c, i) => ({
-        index: i,
-        chunkIndex: c.chunkIndex,
-        contentLength: c.content?.length || 0,
-        score: c.score,
-        resourceId: c.resourceId,
-        documentName: c.documentName,
-      }))
     );
 
     const prompts = loadPrompts();
@@ -157,6 +167,7 @@ export async function POST(request) {
       userMessage,
       contextChunks,
       prompts,
+      conversationHistory,
       selectedDocument?.name
     );
 

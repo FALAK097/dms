@@ -1,5 +1,14 @@
 # DMS Project TODOs
 
+- Threshold of `0.6` for vector filter
+- Context of `20` previous messages in an conversation
+- Openai `gpt-4o-mini` model for `Chat`
+- Google `gemini-2.0-flash-001` model for `OCR`
+- Openai `text-embedding-3-small` model for `Vector Embeddings`
+- Openai tiktoken `cl100k_base`
+- Max chunks token `800`
+- Tools `total_documents`, `find_document_by_name`
+
 ## Dashboard / Document Management
 
 - [X] Implement file uploads from dashboard
@@ -36,7 +45,9 @@
 - [X] Show attached doc for reference in chat
 - [X] Add tool to get all the documents & find documents if their is no proper context
 - [X] Fix to avoid tool calling when asking of docs of year 2022 (filtering)
-- [ ] Add conversation history for better context & responses
+- [X] Add conversation history for better context & responses
+- [ ] Make sure documents & chat, vector search are user specific
+- [ ] Improve the source linking
 - [ ] Add Upstash Redis for caching recent searches
 - [ ] Avoid vector search for generic questions
 - [ ] Improve Prompt for better response
@@ -48,6 +59,8 @@
 - [ ] Prevent duplicate document uploads
 - [ ] Implement streaming response and typing, thinking animation
 - [ ] Scroll to bottom on new messages
+- [ ] Remove scrollbar in conversation list
+- [ ] Search across all conversations
 
 ## Integrations
 

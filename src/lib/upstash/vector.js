@@ -187,7 +187,7 @@ export async function findRelevantContent(query, docId = null, topK = 5) {
 
     const results = await vectorIndex.query(queryOptions);
 
-    const scoreThreshold = docId ? 0 : 0.63;
+    const scoreThreshold = docId ? 0 : 0.6;
 
     return results
       .filter(
