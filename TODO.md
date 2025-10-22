@@ -33,7 +33,10 @@
 - [X] Load all chats for the current user in sidebar (`Chat` table)
 - [X] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [X] Store all conversations and add `zustand` for state management
-- [ ] Show attached doc for reference in chat
+- [X] Show attached doc for reference in chat
+- [X] Add tool to get all the documents & find documents if their is no proper context
+- [X] Fix to avoid tool calling when asking of docs of year 2022 (filtering)
+- [ ] Add conversation history for better context & responses
 - [ ] Add Upstash Redis for caching recent searches
 - [ ] Avoid vector search for generic questions
 - [ ] Improve Prompt for better response

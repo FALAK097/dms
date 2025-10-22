@@ -9,7 +9,7 @@ export const vectorIndex = Index.fromEnv();
 const embeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
 
-function generateChunks(input, maxTokens = 600, overlapTokens = 100) {
+function generateChunks(input, maxTokens = 800, overlapTokens = 150) {
   const text = input.trim();
 
   if (!text) {
@@ -187,13 +187,22 @@ export async function findRelevantContent(query, docId = null, topK = 5) {
 
     const results = await vectorIndex.query(queryOptions);
 
-    return results.map((result) => ({
-      content: result.metadata?.content || "",
-      documentName: result.metadata?.documentName || "Unknown",
-      chunkIndex: result.metadata?.chunkIndex || 0,
-      score: result.score || 0,
-      resourceId: result.metadata?.resourceId || "",
-    }));
+    const scoreThreshold = docId ? 0 : 0.63;
+
+    return results
+      .filter(
+        (result) =>
+          result.score >= scoreThreshold &&
+          result.metadata?.content &&
+          result.metadata.content.trim().length > 0
+      )
+      .map((result) => ({
+        content: result.metadata.content,
+        documentName: result.metadata?.documentName || "Unknown",
+        chunkIndex: result.metadata?.chunkIndex ?? 0,
+        score: result.score || 0,
+        resourceId: result.metadata?.resourceId || "",
+      }));
   } catch (error) {
     console.error("Error finding relevant content:", error);
     return [];

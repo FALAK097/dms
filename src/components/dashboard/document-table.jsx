@@ -392,7 +392,9 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                 <TableHead>Uploaded Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Size</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>
+                  <Skeleton className="h-4 w-4" />
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
