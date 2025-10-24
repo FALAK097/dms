@@ -600,9 +600,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   </TableCell>
                   <TableCell className="font-medium">
                     <Link
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/dashboard/document?documentId=${doc.id}`}
                       className="hover:text-primary hover:underline transition-colors block truncate max-w-md"
                     >
                       {removeExtension(doc.name)}
@@ -701,9 +699,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={doc.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/dashboard/document?documentId=${doc.id}`}
                       className="font-medium truncate block hover:text-primary hover:underline transition-colors"
                     >
                       {removeExtension(doc.name)}

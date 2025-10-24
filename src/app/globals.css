@@ -203,3 +203,40 @@ body {
     display: none;
   }
 }
+
+.pdf-viewer-container {
+  --rpv-background-color: hsl(var(--background));
+  --rpv-foreground-color: hsl(var(--foreground));
+  --rpv-border-color: hsl(var(--border));
+  --rpv-primary-color: hsl(var(--primary));
+  --rpv-secondary-color: hsl(var(--muted));
+  --rpv-hover-background-color: hsl(var(--accent));
+  --rpv-hover-foreground-color: hsl(var(--accent-foreground));
+}
+
+.pdf-viewer-container .rpv-core__viewer {
+  background-color: var(--rpv-background-color);
+}
+
+.pdf-viewer-container .rpv-core__inner-page {
+  background-color: var(--rpv-background-color);
+}
+
+.pdf-viewer-container .rpv-default-layout__toolbar {
+  background-color: var(--rpv-background-color);
+  border-bottom: 1px solid var(--rpv-border-color);
+}
+
+.pdf-viewer-container .rpv-default-layout__sidebar {
+  background-color: var(--rpv-background-color);
+  border-right: 1px solid var(--rpv-border-color);
+}
+
+.pdf-viewer-container .rpv-core__button {
+  color: var(--rpv-foreground-color);
+}
+
+.pdf-viewer-container .rpv-core__button:hover {
+  background-color: var(--rpv-hover-background-color);
+  color: var(--rpv-hover-foreground-color);
+}

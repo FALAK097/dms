@@ -57,10 +57,10 @@
 - [X] Add `nuqs` for state url management for documents table
 - [X] Add support of @ tag in chat to know about particular document
 - [X] Implement streaming response
+- [X] Detail document page, where document can be viewed & change the sources link in chat
 - [ ] Prevent duplicate document uploads
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
-- [ ] Detail document page, where document can be viewed along with a summary & change the sources link in chat
 
 ## UI Improvements
 

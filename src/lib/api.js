@@ -47,6 +47,11 @@ export const documentAPI = {
     return response.data;
   },
 
+  getById: async (id) => {
+    const response = await api.get(`/documents/${id}`);
+    return response.data;
+  },
+
   delete: async (id) => {
     const response = await api.delete(`/documents/${id}`);
     return response.data;

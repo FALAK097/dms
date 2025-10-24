@@ -170,8 +170,11 @@ export function ConversationList() {
       setConversationToDelete(null);
     }
   };
-
   if (loading) {
+    if (state === "collapsed") {
+      return <div className="h-10" />;
+    }
+
     return (
       <div className="space-y-4 px-3 py-2">
         <div>
@@ -201,22 +204,7 @@ export function ConversationList() {
   const groupedConversations = groupConversationsByDate(conversations);
 
   if (state === "collapsed") {
-    return (
-      <div className="space-y-1 px-2 py-2">
-        {conversations.slice(0, 5).map((conv) => (
-          <Button
-            key={conv.id}
-            variant={currentConvId === conv.id ? "secondary" : "ghost"}
-            size="icon"
-            className="w-full"
-            onClick={() => handleConversationClick(conv.id)}
-            title={conv.title}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-        ))}
-      </div>
-    );
+    return <div className="h-10" />;
   }
 
   return (
@@ -243,7 +231,6 @@ export function ConversationList() {
                         : "hover:bg-accent/50"
                     )}
                   >
-                    <MessageSquare className="h-4 w-4 shrink-0" />
                     {editingId === conv.id ? (
                       <div className="flex flex-1 items-center gap-1">
                         <Input

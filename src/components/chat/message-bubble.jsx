@@ -72,7 +72,7 @@ export function MessageBubble({ message, isStreaming = false }) {
                           return (
                             <li key={doc.id} className="text-sm">
                               <Link
-                                href={`/dashboard?documentId=${doc.id}`}
+                                href={`/dashboard/document?documentId=${doc.id}`}
                                 target="_blank"
                                 className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                               >
@@ -123,7 +123,7 @@ export function MessageBubble({ message, isStreaming = false }) {
                             return (
                               <li key={doc.id} className="text-sm">
                                 <Link
-                                  href={`/dashboard?documentId=${doc.id}`}
+                                  href={`/dashboard/document?documentId=${doc.id}`}
                                   target="_blank"
                                   className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                                 >
@@ -196,7 +196,7 @@ export function MessageBubble({ message, isStreaming = false }) {
                 source?.documentId ? (
                   <Link
                     key={`${source.documentId}-${index}`}
-                    href={`/dashboard?documentId=${source.documentId}`}
+                    href={`/dashboard/document?documentId=${source.documentId}`}
                     target="_blank"
                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >

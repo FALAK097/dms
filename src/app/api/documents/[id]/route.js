@@ -5,6 +5,43 @@ import { prisma } from "@/lib/db";
 import { deleteFromSpaces } from "@/lib/storage";
 import { vectorIndex } from "@/lib/upstash/vector";
 
+export async function GET(request, { params }) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const document = await prisma.document.findUnique({
+      where: { id },
+    });
+
+    if (!document) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    if (document.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json({ document });
+  } catch (error) {
+    console.error("Get document error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch document" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request, { params }) {
   try {
     const session = await auth.api.getSession({
