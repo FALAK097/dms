@@ -111,9 +111,14 @@ export function ConversationList() {
   };
 
   const handleEditStart = (conv, e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     setEditingId(conv.id);
     setEditTitle(conv.title);
+  };
+
+  const handleDoubleClick = (conv, e) => {
+    e.stopPropagation();
+    handleEditStart(conv);
   };
 
   const handleEditSave = async (id, e) => {
@@ -216,7 +221,7 @@ export function ConversationList() {
 
   return (
     <>
-      <div className="space-y-4 px-3 py-2 overflow-y-auto">
+      <div className="space-y-4 px-3 py-2 overflow-y-auto scrollbar-hide">
         {Object.entries(groupedConversations).map(([group, convs]) => {
           if (convs.length === 0) return null;
 
@@ -230,8 +235,9 @@ export function ConversationList() {
                   <div
                     key={conv.id}
                     onClick={() => handleConversationClick(conv.id)}
+                    onDoubleClick={(e) => handleDoubleClick(conv, e)}
                     className={cn(
-                      "group flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer transition-colors",
+                      "group/item flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer transition-colors",
                       currentConvId === conv.id
                         ? "bg-accent text-accent-foreground"
                         : "hover:bg-accent/50"
@@ -267,7 +273,7 @@ export function ConversationList() {
                     ) : (
                       <>
                         <span className="flex-1 truncate">{conv.title}</span>
-                        <div className="hidden group-hover:flex items-center gap-1">
+                        <div className="hidden group-hover/item:flex items-center gap-1">
                           <Button
                             size="icon"
                             variant="ghost"

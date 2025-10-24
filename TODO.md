@@ -56,11 +56,22 @@
 
 - [X] Add `nuqs` for state url management for documents table
 - [X] Add support of @ tag in chat to know about particular document
+- [X] Implement streaming response
 - [ ] Prevent duplicate document uploads
-- [ ] Implement streaming response and typing, thinking animation
-- [ ] Scroll to bottom on new messages
-- [ ] Remove scrollbar in conversation list
 - [ ] Search across all conversations
+- [ ] Extract & display Document Type, Parties Involved, Date, Location
+- [ ] Detail document page, where document can be viewed along with a summary & change the sources link in chat
+
+## UI Improvements
+
+- [X] When hover over sidebar all conversations lists get's highlighted instead only specific conversation should be highlighted
+- [X] Remove scrollbar in conversation list
+- [X] Double Tap conversation to edit it
+- [X] When I do @ and type that document should come up
+- [ ] Scroll to bottom on new messages
+- [ ] Thinking animation
+- [ ] When a chat is opened it should always scroll to bottom for allowing Input
+- [ ] A scroll to bottom icon with smooth scroll
 
 ## Integrations
 

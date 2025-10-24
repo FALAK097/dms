@@ -25,6 +25,7 @@ export function ChatInput({
   const containerRef = useRef(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -44,12 +45,14 @@ export function ChatInput({
     setCursorPosition(cursorPos);
 
     const textBeforeCursor = newValue.substring(0, cursorPos);
-    const atMatch = textBeforeCursor.match(/@/);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
 
     if (atMatch) {
       setShowDropdown(true);
+      setSearchQuery(atMatch[1] || "");
     } else {
       setShowDropdown(false);
+      setSearchQuery("");
     }
   };
 
@@ -77,6 +80,7 @@ export function ChatInput({
 
     onDocumentSelect(doc);
     setShowDropdown(false);
+    setSearchQuery("");
 
     setTimeout(() => {
       textareaRef.current?.focus();
@@ -163,6 +167,7 @@ export function ChatInput({
           isOpen={showDropdown}
           onSelect={handleDocumentSelect}
           position={{ bottom: "100%", left: 0 }}
+          searchQuery={searchQuery}
         />
       </div>
     </div>

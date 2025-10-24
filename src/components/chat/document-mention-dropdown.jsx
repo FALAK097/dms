@@ -6,7 +6,12 @@ import { File, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
-export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
+export function DocumentMentionDropdown({
+  isOpen,
+  onSelect,
+  position,
+  searchQuery = "",
+}) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -16,6 +21,10 @@ export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
       loadDocuments();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery]);
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -30,26 +39,35 @@ export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
     }
   };
 
+  const filteredDocuments = documents.filter((doc) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      doc.name.toLowerCase().includes(query) ||
+      doc.type?.toLowerCase().includes(query)
+    );
+  });
+
   const handleKeyDown = (e) => {
-    if (!isOpen || documents.length === 0) return;
+    if (!isOpen || filteredDocuments.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < documents.length - 1 ? prev + 1 : 0
+          prev < filteredDocuments.length - 1 ? prev + 1 : 0
         );
         break;
       case "ArrowUp":
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : documents.length - 1
+          prev > 0 ? prev - 1 : filteredDocuments.length - 1
         );
         break;
       case "Enter":
         e.preventDefault();
-        if (documents[selectedIndex]) {
-          onSelect(documents[selectedIndex]);
+        if (filteredDocuments[selectedIndex]) {
+          onSelect(filteredDocuments[selectedIndex]);
         }
         break;
       case "Escape":
@@ -64,7 +82,7 @@ export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen, selectedIndex, documents]);
+  }, [isOpen, selectedIndex, filteredDocuments]);
 
   if (!isOpen) return null;
 
@@ -82,13 +100,15 @@ export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        ) : documents.length === 0 ? (
+        ) : filteredDocuments.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
-            No documents available
+            {searchQuery
+              ? `No documents found matching "${searchQuery}"`
+              : "No documents available"}
           </div>
         ) : (
           <div className="p-1">
-            {documents.map((doc, index) => (
+            {filteredDocuments.map((doc, index) => (
               <button
                 key={doc.id}
                 onClick={() => onSelect(doc)}
@@ -138,6 +158,12 @@ export function DocumentMentionDropdown({ isOpen, onSelect, position }) {
       <div className="p-2 border-t bg-muted/50 text-xs text-muted-foreground">
         <div className="flex items-center justify-between">
           <span>↑↓ Navigate • Enter Select • Esc Cancel</span>
+          {searchQuery && (
+            <span className="font-medium">
+              {filteredDocuments.length} result
+              {filteredDocuments.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
     </div>
