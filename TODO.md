@@ -59,6 +59,7 @@
 - [X] Implement streaming response
 - [X] Detail document page, where document can be viewed & change the sources link in chat
 - [ ] Prevent duplicate document uploads
+- [ ] Add presigned urls for direct DO Spaces upload for large document uploads
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
 
@@ -80,12 +81,12 @@
 
 ## Additional Changes
 
+- [ ] Create a DB in Neon
+- [ ] Deploy to vercel under subdomain
 - [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
-- [ ] Add Uploadthing & DO Spaces both options for document storing
-- [ ] Create a DB in Neon or Supabase or PlanetScale
-- [ ] Deploy to vercel under subdomain
+- [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
 - [ ] Add OTP Verification
 - [ ] Add google login option
 - [ ] Create a landing page
