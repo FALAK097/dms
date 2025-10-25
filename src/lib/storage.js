@@ -3,8 +3,9 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const s3Client = new S3Client({
+export const s3Client = new S3Client({
   endpoint: process.env.DO_SPACES_ENDPOINT_URL,
   region: process.env.DO_SPACES_REGION,
   credentials: {
@@ -27,11 +28,7 @@ export async function uploadToSpaces(file, key) {
 
   await s3Client.send(new PutObjectCommand(params));
 
-  const endpoint = process.env.DO_SPACES_ENDPOINT_URL.replace("https://", "");
-  return `https://${process.env.DO_SPACES_NAME}.${endpoint.replace(
-    "digitaloceanspaces.com",
-    "cdn.digitaloceanspaces.com"
-  )}/${key}`;
+  return getCdnUrl(key);
 }
 
 export function generateDocumentKey(userId, fileName) {
@@ -48,4 +45,27 @@ export async function deleteFromSpaces(key) {
   });
 
   await s3Client.send(command);
+}
+
+export async function generatePresignedUploadUrl(key, contentType) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.DO_SPACES_NAME,
+    Key: key,
+    ContentType: contentType,
+    ACL: "public-read",
+  });
+
+  const presignedUrl = await getSignedUrl(s3Client, command, {
+    expiresIn: 900,
+  });
+
+  return presignedUrl;
+}
+
+export function getCdnUrl(key) {
+  const endpoint = process.env.DO_SPACES_ENDPOINT_URL.replace("https://", "");
+  return `https://${process.env.DO_SPACES_NAME}.${endpoint.replace(
+    "digitaloceanspaces.com",
+    "cdn.digitaloceanspaces.com"
+  )}/${key}`;
 }

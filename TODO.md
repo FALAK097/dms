@@ -8,6 +8,38 @@
 - Openai tiktoken `cl100k_base`
 - Max chunks token `800`
 - Tools `total_documents`, `find_document_by_name`
+- Max file size `500 mb` and `50` max files per request
+
+## Learnings
+
+### Vercel DO Spaces Pre-Signed Urls for allowing larger file uploads
+
+1. Vercel on free tier allows a max of 4.5mb file upload in a request body, so even though DO Spaces can handle large file uploads it was failing.
+
+    - 1.1. Client → Vercel API with file in body
+
+    - 1.2. Vercel API → DO Spaces upload
+
+    - 1.3. Vercel API → Database save
+
+    - 1.4. Vercel API → Client response
+
+2. Their I added `presigned-urls`.
+3. New flow
+
+    - 3.1. Client → GET presigned URL from Vercel API
+      └─ Request: { fileName, fileType, fileSize }
+      └─ Response: { presignedUrl, key, publicUrl }
+
+    - 3.2. Client → PUT file directly to DO Spaces using presignedUrl
+      └─ File NEVER touches Vercel servers
+      └─ Uses AWS signed authentication
+
+    - 3.3. Client → Confirm upload to Vercel API
+      └─ Request: { files: [{ key, publicUrl, ... }] }
+      └─ Vercel saves metadata to database
+
+    - 3.4. Client → Trigger document processing (existing flow)
 
 ## Dashboard / Document Management
 
@@ -58,8 +90,8 @@
 - [X] Add support of @ tag in chat to know about particular document
 - [X] Implement streaming response
 - [X] Detail document page, where document can be viewed & change the sources link in chat
-- [ ] Prevent duplicate document uploads
-- [ ] Add presigned urls for direct DO Spaces upload for large document uploads
+- [X] Add presigned urls for direct DO Spaces upload for large document uploads
+- [X] Prevent duplicate document uploads (through content hashing SHA256)
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
 
@@ -73,6 +105,12 @@
 - [ ] Thinking animation
 - [ ] When a chat is opened it should always scroll to bottom for allowing Input
 - [ ] A scroll to bottom icon with smooth scroll
+- [ ] Store the state of sidebar collapsed or not
+- [ ] For failed processed document provide an option to re-process with max 3 retries
+- [ ] Fix the issue where entire folder is uploaded it blocks the docs rendering on table and if User refreshes it fails the document processing and docs remain in PENDING state
+- [ ] Do not display the error on document viewer
+- [ ] Fix issue where the GET /documents route is being called continuously (make use of `use cache` directives)
+- [ ] When back button is clicked from detailed document viewer it redirects to /dashboard and does not maintain the nuqs url params
 
 ## Integrations
 
@@ -81,14 +119,16 @@
 
 ## Additional Changes
 
-- [ ] Create a DB in Neon
-- [ ] Deploy to vercel under subdomain
+- [X] Create a DB in Neon
+- [X] Deploy to vercel under subdomain
+- [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
+- [ ] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
 - [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
 - [ ] Add OTP Verification
-- [ ] Add google login option
+- [ ] Add google login option with Last Used
 - [ ] Create a landing page
 - [ ] Add Upstash Search for dashboard search
 - [ ] Add pagination & chunking optimizations

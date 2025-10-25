@@ -50,7 +50,7 @@ export async function POST(request, { params }) {
       (m) => m.role === "ASSISTANT"
     );
 
-    const prompt = `Generate a concise, descriptive title (3-6 words) for this conversation. Only return the title, nothing else.
+    const prompt = `Generate a concise, descriptive title (3-6 words) for this conversation. Do not provide generic titles. Provide a unique title that reflects the content of the conversation and is personalized. Only return the title, nothing else.
 
 User: ${userMsg.content}
 Assistant: ${assistantMsg.content.substring(0, 200)}...

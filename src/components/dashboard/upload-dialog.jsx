@@ -94,7 +94,19 @@ export function UploadDialog({ onComplete }) {
       const result = await documentAPI.upload(files);
       setFiles([]);
       setOpen(false);
-      toast.success(`Successfully uploaded ${result.count} file(s)`);
+
+      if (result.count > 0) {
+        toast.success(`Successfully uploaded ${result.count} file(s)`);
+      }
+
+      if (result.duplicates && result.duplicates.length > 0) {
+        result.duplicates.forEach((dup) => {
+          toast.info(`"${dup.fileName}" already exists`, {
+            description: "Skipped duplicate file",
+          });
+        });
+      }
+
       onComplete?.();
     } catch (error) {
       console.error("Upload error:", error);

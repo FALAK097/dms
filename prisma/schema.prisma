@@ -76,6 +76,7 @@ model Document {
   type            String
   key             String         @unique
   url             String
+  contentHash     String?
   userId          String
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt       DateTime       @default(now())
@@ -87,6 +88,7 @@ model Document {
   chunkCount      Int?
 
   @@index([userId])
+  @@index([contentHash, userId])
   @@map("document")
 }
 

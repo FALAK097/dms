@@ -23,19 +23,19 @@ export function HomeContent() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
           <Button
-            onClick={() => router.push("/sign-up")}
+            onClick={() => router.push("/dashboard")}
             size="lg"
             className="w-full sm:w-auto min-w-[140px]"
           >
             Get Started
           </Button>
           <Button
-            onClick={() => router.push("/sign-in")}
+            onClick={() => router.push("/sign-up")}
             variant="outline"
             size="lg"
             className="w-full sm:w-auto min-w-[140px]"
           >
-            Sign In
+            Sign Up
           </Button>
         </div>
 
