@@ -92,8 +92,16 @@
 - [X] Detail document page, where document can be viewed & change the sources link in chat
 - [X] Add presigned urls for direct DO Spaces upload for large document uploads
 - [X] Prevent duplicate document uploads (through content hashing SHA256)
+- [X] Add "Sync Now" button in settings
+- [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
+- [X] Create a separate General & Integrations tab in settings
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
+- [ ] Add tool to extract summary, determine type of document, & generate tags & display all this
+- [ ] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
+- [ ] Test the accessToken expires refresh works or not
+- [ ] Document is added through dropbox & if I upload same document through platform it doesn't detect duplication
+- [ ] Allow users to choose which Dropbox folders to sync
 
 ## UI Improvements
 
@@ -114,7 +122,7 @@
 
 ## Integrations
 
-- [ ] Add Dropbox Integration
+- [X] Add Dropbox Integration
 - [ ] Add Drive Integration
 
 ## Additional Changes
@@ -132,3 +140,4 @@
 - [ ] Create a landing page
 - [ ] Add Upstash Search for dashboard search
 - [ ] Add pagination & chunking optimizations
+- [ ] Ability to add comments & collaborate with team members

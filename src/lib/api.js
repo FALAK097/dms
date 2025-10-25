@@ -164,4 +164,11 @@ export const conversationAPI = {
   },
 };
 
+export const dropboxAPI = {
+  syncNow: async () => {
+    const response = await api.post("/dropbox/sync");
+    return response.data;
+  },
+};
+
 export default api;

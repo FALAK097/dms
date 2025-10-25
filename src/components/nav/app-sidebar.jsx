@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { LayoutDashboard, MessageCircle } from "lucide-react";
+import { LayoutDashboard, Settings } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavGroups } from "./nav-groups";
@@ -33,9 +33,9 @@ const data = {
       isActive: true,
     },
     {
-      title: "Chat",
-      url: "/chat",
-      icon: MessageCircle,
+      title: "Settings",
+      url: "/settings",
+      icon: Settings,
     },
   ],
   groups: [],
