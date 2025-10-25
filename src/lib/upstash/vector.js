@@ -124,7 +124,12 @@ async function generateEmbedding(value) {
   return embedding;
 }
 
-export async function upsertEmbeddings(resourceId, content, documentName) {
+export async function upsertEmbeddings(
+  resourceId,
+  content,
+  documentName,
+  userId
+) {
   try {
     if (!content || content.trim().length === 0) {
       return {
@@ -152,6 +157,7 @@ export async function upsertEmbeddings(resourceId, content, documentName) {
         content: chunk.content,
         documentName,
         chunkIndex: i,
+        userId,
       },
     }));
 
@@ -171,7 +177,12 @@ export async function upsertEmbeddings(resourceId, content, documentName) {
   }
 }
 
-export async function findRelevantContent(query, docId = null, topK = 5) {
+export async function findRelevantContent(
+  query,
+  userId,
+  docId = null,
+  topK = 5
+) {
   try {
     const queryEmbedding = await generateEmbedding(query);
 
@@ -181,9 +192,13 @@ export async function findRelevantContent(query, docId = null, topK = 5) {
       includeMetadata: true,
     };
 
+    let filters = [`userId = "${userId}"`];
+
     if (docId) {
-      queryOptions.filter = `resourceId = "${docId}"`;
+      filters.push(`resourceId = "${docId}"`);
     }
+
+    queryOptions.filter = filters.join(" AND ");
 
     const results = await vectorIndex.query(queryOptions);
 

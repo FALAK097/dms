@@ -158,6 +158,7 @@ export async function POST(request) {
 
     const contextChunks = await findRelevantContent(
       userMessage,
+      session.user.id,
       documentId || null,
       8
     );

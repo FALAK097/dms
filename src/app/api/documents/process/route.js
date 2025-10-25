@@ -2,9 +2,19 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { extractTextFromPDF } from "@/lib/ocr";
 import { upsertEmbeddings } from "@/lib/upstash/vector";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function POST(request) {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { documentId } = await request.json();
 
     if (!documentId) {
@@ -23,6 +33,10 @@ export async function POST(request) {
         { error: "Document not found" },
         { status: 404 }
       );
+    }
+
+    if (document.userId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.document.update({
@@ -70,7 +84,8 @@ export async function POST(request) {
     const embeddingResult = await upsertEmbeddings(
       documentId,
       result.text,
-      document.name
+      document.name,
+      document.userId
     );
 
     if (!embeddingResult.success) {

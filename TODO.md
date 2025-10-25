@@ -46,7 +46,7 @@
 - [X] Add tool to get all the documents & find documents if their is no proper context
 - [X] Fix to avoid tool calling when asking of docs of year 2022 (filtering)
 - [X] Add conversation history for better context & responses
-- [ ] Make sure documents & chat, vector search are user specific
+- [X] Make sure documents & chat, vector search are user specific
 - [ ] Improve the source linking
 - [ ] Add Upstash Redis for caching recent searches
 - [ ] Avoid vector search for generic questions
