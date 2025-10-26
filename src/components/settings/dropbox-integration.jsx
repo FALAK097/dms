@@ -188,7 +188,7 @@ export const DropboxIntegration = ({ user }) => {
                   </Button>
                 ) : (
                   <DropboxSignInButton
-                    callbackURL="/settings"
+                    callbackURL="/settings?tab=integrations"
                     onSuccess={fetchAccounts}
                   />
                 )}

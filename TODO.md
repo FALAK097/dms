@@ -95,10 +95,10 @@
 - [X] Add "Sync Now" button in settings
 - [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
 - [X] Create a separate General & Integrations tab in settings
+- [X] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
 - [ ] Add tool to extract summary, determine type of document, & generate tags & display all this
-- [ ] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
 - [ ] Test the accessToken expires refresh works or not
 - [ ] Document is added through dropbox & if I upload same document through platform it doesn't detect duplication
 - [ ] Allow users to choose which Dropbox folders to sync
