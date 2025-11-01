@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 import {
   Collapsible,
@@ -25,8 +26,21 @@ export function NavMain({ items }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>DMS</SidebarGroupLabel>
-      <SidebarMenu>
+      <SidebarGroupLabel>
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/images/logo.png"
+            alt="DMS Logo"
+            width={24}
+            height={24}
+            className="object-contain"
+          />
+          <span className="font-medium text-xl tracking-tight text-primary">
+            DMS
+          </span>
+        </div>
+      </SidebarGroupLabel>
+      <SidebarMenu className="mt-4">
         {items.map((item) => {
           const isActive = pathname === item.url;
 

@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { SettingsTabs } from "@/components/settings/settings-tabs";
 
+export const metadata = {
+  title: "Settings",
+  description:
+    "Manage your account settings, integrate with Dropbox, and customize your DMS experience.",
+};
+
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
     headers: await headers(),

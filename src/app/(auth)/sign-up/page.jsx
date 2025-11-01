@@ -7,6 +7,12 @@ import {
 } from "@/components/ui/card";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 
+export const metadata = {
+  title: "Sign Up",
+  description:
+    "Create a new DMS account to start managing and organizing your documents with AI-powered chat.",
+};
+
 export default function SignUpPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
