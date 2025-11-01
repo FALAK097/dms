@@ -132,7 +132,7 @@
 - [X] Deploy to vercel under subdomain
 - [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Integrate QStash to queue background OCR/embedding jobs
+- [ ] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
 - [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing

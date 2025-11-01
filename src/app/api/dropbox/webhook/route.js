@@ -129,62 +129,55 @@ async function processDropboxChanges(dropboxAccountId) {
     let cursor = user?.dropboxWebhookCursor || null;
     let hasMore = true;
 
-    if (!cursor || account.syncFolderId) {
-      const response = await dropboxApiRequest(
-        account.userId,
-        "/2/files/list_folder",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            path: syncPath,
-            recursive: true,
-            include_deleted: false,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      for (const entry of result.entries) {
-        if (entry[".tag"] === "file") {
-          await processNewFile(account.userId, entry);
-        } else if (entry[".tag"] === "deleted") {
-          console.log(`File deleted: ${entry.path_display}`);
-        }
-      }
-
-      cursor = result.cursor;
-
-      await prisma.user.update({
-        where: { id: account.userId },
-        data: {
-          dropboxWebhookCursor: cursor,
-          dropboxCursorUpdatedAt: new Date(),
-        },
-      });
-
-      hasMore = result.has_more;
-    }
-
     while (hasMore) {
-      const response = await dropboxApiRequest(
-        account.userId,
-        "/2/files/list_folder/continue",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            cursor: cursor,
-          }),
-        }
-      );
+      let result;
 
-      const result = await response.json();
+      if (cursor) {
+        try {
+          const response = await dropboxApiRequest(
+            account.userId,
+            "/2/files/list_folder/continue",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                cursor: cursor,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            console.log("Cursor invalid, reinitializing...");
+            cursor = null;
+            continue;
+          }
+
+          result = await response.json();
+        } catch (error) {
+          console.error("Error using cursor, reinitializing:", error);
+          cursor = null;
+          continue;
+        }
+      } else {
+        const response = await dropboxApiRequest(
+          account.userId,
+          "/2/files/list_folder",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              path: syncPath,
+              recursive: true,
+              include_deleted: false,
+            }),
+          }
+        );
+        result = await response.json();
+      }
 
       for (const entry of result.entries) {
         if (entry[".tag"] === "file") {
