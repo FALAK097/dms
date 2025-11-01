@@ -169,6 +169,10 @@ export const dropboxAPI = {
     const response = await api.post("/dropbox/sync");
     return response.data;
   },
+  selectFolder: async (folderPath) => {
+    const response = await api.post("/dropbox/folder", { folderPath });
+    return response.data;
+  },
 };
 
 export default api;

@@ -510,7 +510,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
     <TooltipProvider>
       <div className="space-y-4">
         {selectedIds.size > 0 && (
-          <div className="flex items-center justify-between rounded-lg border bg-muted/50 p-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border bg-muted/50 p-3">
             <div className="text-sm font-medium">
               {selectedIds.size} document(s) selected
             </div>
@@ -518,6 +518,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
               size="sm"
               variant="destructive"
               onClick={handleBulkDeleteClick}
+              className="w-full sm:w-fit"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete Selected
@@ -525,7 +526,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
           </div>
         )}
 
-        <div className="hidden md:block rounded-lg border min-h-[500px]">
+        <div className="hidden lg:block rounded-lg border min-h-[500px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -554,7 +555,8 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                     onClick={toggleSort}
                     className="-ml-3 h-8"
                   >
-                    Uploaded Date
+                    <span className="hidden md:inline">Uploaded Date</span>
+                    <span className="md:hidden">Date</span>
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
@@ -606,7 +608,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       {removeExtension(doc.name)}
                     </Link>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
+                  <TableCell className="whitespace-nowrap text-sm">
                     {new Date(doc.createdAt).toLocaleString()}
                   </TableCell>
                   <TableCell>
@@ -630,7 +632,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-sm">
                     {formatSize(doc.size)}
                   </TableCell>
                   <TableCell className="text-right">
@@ -663,7 +665,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
           </Table>
         </div>
 
-        <div className="grid gap-3 md:hidden">
+        <div className="grid gap-3 lg:hidden">
           <div className="flex justify-end">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -685,10 +687,10 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
             </Tooltip>
           </div>
           {docs.map((doc) => (
-            <Card key={doc.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex items-center pt-0.5">
+            <Card key={doc.id} className="overflow-hidden">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="flex items-center pt-0.5 shrink-0">
                     <Checkbox
                       checked={selectedIds.has(doc.id)}
                       onCheckedChange={(checked) =>
@@ -697,20 +699,20 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                       aria-label={`Select ${doc.name}`}
                     />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 space-y-2">
                     <Link
                       href={`/dashboard/document?documentId=${doc.id}`}
-                      className="font-medium truncate block hover:text-primary hover:underline transition-colors"
+                      className="font-medium text-sm sm:text-base truncate block hover:text-primary hover:underline transition-colors"
                     >
                       {removeExtension(doc.name)}
                     </Link>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground">
                       {new Date(doc.createdAt).toLocaleString()}
                     </div>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex ">
+                          <span className="inline-flex">
                             {getStatusBadge(doc.status)}
                           </span>
                         </TooltipTrigger>
@@ -727,48 +729,52 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                           </p>
                         </TooltipContent>
                       </Tooltip>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-xs sm:text-sm text-muted-foreground">
                         {formatSize(doc.size)}
                       </span>
                     </div>
                   </div>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDeleteClick(doc)}
-                        disabled={doc.status === "PROCESSING"}
-                        aria-label={`Delete ${doc.name}`}
-                        className="flex-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {doc.status === "PROCESSING"
-                          ? "Cannot delete while processing"
-                          : "Delete document"}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className="shrink-0">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteClick(doc)}
+                          disabled={doc.status === "PROCESSING"}
+                          aria-label={`Delete ${doc.name}`}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {doc.status === "PROCESSING"
+                            ? "Cannot delete while processing"
+                            : "Delete document"}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-4 sm:gap-0 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
             <div className="text-sm text-muted-foreground">
               Showing {startItem}-{endItem} of {pagination.total}
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-full sm:w-auto"
+                >
                   {urlState.limit} per page
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
@@ -786,17 +792,18 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(urlState.page - 1)}
               disabled={urlState.page === 1}
               aria-label="Previous page"
+              className="w-full sm:w-auto"
             >
               Previous
             </Button>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground text-center">
               Page {pagination.page} of {pagination.totalPages}
             </div>
             <Button
@@ -805,6 +812,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
               onClick={() => handlePageChange(urlState.page + 1)}
               disabled={urlState.page === pagination.totalPages}
               aria-label="Next page"
+              className="w-full sm:w-auto"
             >
               Next
             </Button>

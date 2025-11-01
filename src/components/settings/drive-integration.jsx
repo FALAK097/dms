@@ -13,31 +13,28 @@ import { Button } from "@/components/ui/button";
 export const DriveIntegration = () => {
   return (
     <Card className="opacity-60">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle>Google Drive</CardTitle>
-            <CardDescription>
-              Connect your Google Drive account to automatically sync and import
-              documents
-            </CardDescription>
-          </div>
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-          >
-            Coming Soon
-          </Badge>
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between space-y-0 pb-4">
+        <div className="space-y-1.5">
+          <CardTitle>Google Drive</CardTitle>
+          <CardDescription>
+            Connect Google Drive to sync and import documents
+          </CardDescription>
         </div>
+        <Badge
+          variant="secondary"
+          className="w-fit bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
+        >
+          Coming Soon
+        </Badge>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between rounded-lg border border-dashed p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-[#4285F4] via-[#34A853] to-[#FBBC05]">
+        <div className="flex flex-col gap-4 rounded-lg border border-dashed p-3 sm:p-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-[#4285F4] via-[#34A853] to-[#FBBC05]">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 87.3 78"
-                className="h-7 w-7"
+                className="h-6 w-6"
               >
                 <path
                   fill="#0066DA"
@@ -65,14 +62,16 @@ export const DriveIntegration = () => {
                 />
               </svg>
             </div>
-            <div className="space-y-1">
-              <h3 className="font-semibold leading-none">Not Available</h3>
-              <p className="text-sm text-muted-foreground">
-                Google Drive integration is currently under development
-              </p>
-            </div>
+            <p className="flex-1 min-w-0 text-sm text-muted-foreground">
+              Google Drive integration is currently under development
+            </p>
           </div>
-          <Button disabled size="sm" variant="outline">
+          <Button
+            disabled
+            size="sm"
+            variant="outline"
+            className="w-full sm:w-fit"
+          >
             Connect
           </Button>
         </div>

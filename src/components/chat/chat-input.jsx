@@ -105,16 +105,19 @@ export function ChatInput({
   return (
     <div className="space-y-2">
       {selectedDocument && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
-          <Badge variant="secondary" className="gap-1">
-            <span className="text-xs">Chatting about:</span>
-            <span className="font-medium">{selectedDocument.name}</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 py-2 bg-muted rounded-lg">
+          <Badge variant="secondary" className="gap-1 w-fit">
+            <span className="text-xs hidden sm:inline">Chatting about:</span>
+            <span className="text-xs sm:hidden">About:</span>
+            <span className="font-medium truncate max-w-[200px]">
+              {selectedDocument.name}
+            </span>
           </Badge>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-6 w-6 ml-auto"
+            className="h-6 w-6 shrink-0"
             onClick={handleRemoveDocument}
             aria-label="Remove document context"
           >
@@ -123,7 +126,10 @@ export function ChatInput({
         </div>
       )}
 
-      <div ref={containerRef} className="relative flex items-end gap-2">
+      <div
+        ref={containerRef}
+        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+      >
         <Textarea
           ref={textareaRef}
           value={value}
@@ -133,35 +139,37 @@ export function ChatInput({
             disabled
               ? "Waiting for response..."
               : selectedDocument
-              ? `Ask about ${selectedDocument.name}... (Type @ to change document)`
-              : "Type your message... (Shift+Enter to send, @ to select a document)"
+              ? `Ask about ${selectedDocument.name}... (Shift+Enter to send, @ to change)`
+              : "Type your message... (Shift+Enter to send, @ to select)"
           }
           disabled={disabled}
           rows={1}
           className={cn(
-            "min-h-[44px] max-h-[200px] resize-none",
-            "focus-visible:ring-1"
+            "min-h-11 max-h-[200px] resize-none flex-1",
+            "focus-visible:ring-1 text-sm sm:text-base"
           )}
           aria-label="Chat message"
         />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="submit"
-                disabled={!value?.trim() || disabled}
-                size="icon"
-                className="h-11 w-11 shrink-0"
-                aria-label="Send message"
-              >
-                <Send className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Shift + Enter to send</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <div className="flex gap-2 sm:gap-0 sm:ml-2 self-end sm:self-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="submit"
+                  disabled={!value?.trim() || disabled}
+                  size="icon"
+                  className="h-11 w-11 shrink-0"
+                  aria-label="Send message"
+                >
+                  <Send className="h-5 w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs">
+                <p>Shift + Enter to send</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
         <DocumentMentionDropdown
           isOpen={showDropdown}

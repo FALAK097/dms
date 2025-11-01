@@ -29,12 +29,46 @@ export async function POST(request) {
       );
     }
 
+    if (!dropboxAccount.syncFolderId) {
+      return NextResponse.json(
+        { error: "Please select a folder to sync" },
+        { status: 400 }
+      );
+    }
+
+    let syncPath = "";
+    const metadataResponse = await dropboxApiRequest(
+      session.user.id,
+      "/2/files/get_metadata",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          path: dropboxAccount.syncFolderId,
+          include_deleted: false,
+        }),
+      }
+    );
+
+    if (!metadataResponse.ok) {
+      console.error("Failed to get folder metadata");
+      return NextResponse.json(
+        { error: "Failed to access selected folder" },
+        { status: 400 }
+      );
+    }
+
+    const metadata = await metadataResponse.json();
+    syncPath = metadata.path_display;
+
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { dropboxWebhookCursor: true },
     });
 
-    let cursor = user?.dropboxWebhookCursor || null;
+    let cursor = null;
     let newFilesCount = 0;
     let hasMore = true;
 
@@ -66,7 +100,7 @@ export async function POST(request) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              path: "",
+              path: syncPath,
               recursive: true,
               include_deleted: false,
             }),
@@ -97,7 +131,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: `Sync completed. ${newFilesCount} new file(s) imported.`,
+      message: `Sync completed. ${newFilesCount} new file(s) imported from selected folder.`,
       newFilesCount,
     });
   } catch (error) {

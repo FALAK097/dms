@@ -96,12 +96,13 @@
 - [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
 - [X] Create a separate General & Integrations tab in settings
 - [X] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
+- [X] Test the accessToken expires refresh works or not
+- [X] Allow users to choose which Dropbox folders to sync - (Selected folder id is stored, the chooser script works but, Folder selected is not displayed, files from outside those folder are also processed)
+- [X] Fix ui on mobile devices & make it responsive for all pages
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
 - [ ] Add tool to extract summary, determine type of document, & generate tags & display all this
-- [ ] Test the accessToken expires refresh works or not
 - [ ] Document is added through dropbox & if I upload same document through platform it doesn't detect duplication
-- [ ] Allow users to choose which Dropbox folders to sync
 
 ## UI Improvements
 

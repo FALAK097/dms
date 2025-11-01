@@ -14,7 +14,7 @@ export function DashboardClient() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 sm:px-0">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">
@@ -25,7 +25,7 @@ export function DashboardClient() {
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex w-full sm:w-[340px]">
+          <div className="flex w-full sm:flex-1 sm:max-w-[340px]">
             <Input
               placeholder="Search documents..."
               value={query}

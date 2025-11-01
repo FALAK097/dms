@@ -24,7 +24,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0">
       <SettingsTabs user={user} />
     </div>
   );

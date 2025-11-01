@@ -95,6 +95,32 @@ async function processDropboxChanges(dropboxAccountId) {
       return;
     }
 
+    let syncPath = "";
+    if (account.syncFolderId) {
+      const metadataResponse = await dropboxApiRequest(
+        account.userId,
+        "/2/files/get_metadata",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            path: account.syncFolderId,
+            include_deleted: false,
+          }),
+        }
+      );
+
+      if (metadataResponse.ok) {
+        const metadata = await metadataResponse.json();
+        syncPath = metadata.path_display;
+      } else {
+        console.error("Failed to get folder metadata for webhook");
+        return;
+      }
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: account.userId },
       select: { dropboxWebhookCursor: true },
@@ -130,7 +156,7 @@ async function processDropboxChanges(dropboxAccountId) {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              path: "",
+              path: syncPath,
               recursive: true,
               include_deleted: false,
             }),
@@ -140,6 +166,17 @@ async function processDropboxChanges(dropboxAccountId) {
       }
 
       for (const entry of result.entries) {
+        if (account.syncFolderId && entry.path_display) {
+          const folderPath = account.syncFolderId.toLowerCase();
+          const filePath = entry.path_display.toLowerCase();
+          if (
+            !filePath.startsWith(folderPath + "/") &&
+            filePath !== folderPath
+          ) {
+            continue;
+          }
+        }
+
         if (entry[".tag"] === "file") {
           await processNewFile(account.userId, entry);
         } else if (entry[".tag"] === "deleted") {

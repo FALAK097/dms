@@ -29,6 +29,12 @@ export default async function RootLayout({ children }) {
           <NuqsAdapter>{children}</NuqsAdapter>
           <Toaster />
         </ThemeProvider>
+        <script
+          type="text/javascript"
+          src="https://www.dropbox.com/static/api/2/dropins.js"
+          id="dropboxjs"
+          data-app-key={process.env.DROPBOX_CLIENT_ID}
+        ></script>
       </body>
     </html>
   );

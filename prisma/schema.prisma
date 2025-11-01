@@ -54,6 +54,7 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
+  syncFolderId          String?   @map("sync_folder_id")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
