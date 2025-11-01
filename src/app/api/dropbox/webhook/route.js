@@ -128,55 +128,65 @@ async function processDropboxChanges(dropboxAccountId) {
 
     let cursor = user?.dropboxWebhookCursor || null;
     let hasMore = true;
-    while (hasMore) {
-      let result;
 
-      if (cursor) {
-        const response = await dropboxApiRequest(
-          account.userId,
-          "/2/files/list_folder/continue",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              cursor: cursor,
-            }),
-          }
-        );
-        result = await response.json();
-      } else {
-        const response = await dropboxApiRequest(
-          account.userId,
-          "/2/files/list_folder",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              path: syncPath,
-              recursive: true,
-              include_deleted: false,
-            }),
-          }
-        );
-        result = await response.json();
-      }
+    if (!cursor || account.syncFolderId) {
+      const response = await dropboxApiRequest(
+        account.userId,
+        "/2/files/list_folder",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            path: syncPath,
+            recursive: true,
+            include_deleted: false,
+          }),
+        }
+      );
+
+      const result = await response.json();
 
       for (const entry of result.entries) {
-        if (account.syncFolderId && entry.path_display) {
-          const folderPath = account.syncFolderId.toLowerCase();
-          const filePath = entry.path_display.toLowerCase();
-          if (
-            !filePath.startsWith(folderPath + "/") &&
-            filePath !== folderPath
-          ) {
-            continue;
-          }
+        if (entry[".tag"] === "file") {
+          await processNewFile(account.userId, entry);
+        } else if (entry[".tag"] === "deleted") {
+          console.log(`File deleted: ${entry.path_display}`);
         }
+      }
 
+      cursor = result.cursor;
+
+      await prisma.user.update({
+        where: { id: account.userId },
+        data: {
+          dropboxWebhookCursor: cursor,
+          dropboxCursorUpdatedAt: new Date(),
+        },
+      });
+
+      hasMore = result.has_more;
+    }
+
+    while (hasMore) {
+      const response = await dropboxApiRequest(
+        account.userId,
+        "/2/files/list_folder/continue",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cursor: cursor,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      for (const entry of result.entries) {
         if (entry[".tag"] === "file") {
           await processNewFile(account.userId, entry);
         } else if (entry[".tag"] === "deleted") {
