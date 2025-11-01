@@ -130,8 +130,8 @@
 
 - [X] Create a DB in Neon
 - [X] Deploy to vercel under subdomain
+- [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
