@@ -8,17 +8,19 @@ datasource db {
 }
 
 model User {
-  id            String         @id
-  name          String
-  email         String
-  emailVerified Boolean        @default(false)
-  image         String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  documents     Document[]
-  conversations Conversation[]
+  id                     String         @id
+  name                   String
+  email                  String
+  emailVerified          Boolean        @default(false)
+  image                  String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @default(now()) @updatedAt
+  dropboxWebhookCursor   String?
+  dropboxCursorUpdatedAt DateTime?
+  sessions               Session[]
+  accounts               Account[]
+  documents              Document[]
+  conversations          Conversation[]
 
   @@unique([email])
   @@map("user")
@@ -52,6 +54,7 @@ model Account {
   refreshTokenExpiresAt DateTime?
   scope                 String?
   password              String?
+  syncFolderId          String?   @map("sync_folder_id")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 

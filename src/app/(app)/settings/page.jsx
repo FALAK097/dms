@@ -1,0 +1,37 @@
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { SettingsTabs } from "@/components/settings/settings-tabs";
+
+export const metadata = {
+  title: "Settings",
+  description:
+    "Manage your account settings, integrate with Dropbox, and customize your DMS experience.",
+};
+
+export default async function SettingsPage() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    redirect("/");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      dropboxCursorUpdatedAt: true,
+    },
+  });
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 sm:px-0">
+      <SettingsTabs user={user} />
+    </div>
+  );
+}

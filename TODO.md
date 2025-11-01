@@ -92,8 +92,17 @@
 - [X] Detail document page, where document can be viewed & change the sources link in chat
 - [X] Add presigned urls for direct DO Spaces upload for large document uploads
 - [X] Prevent duplicate document uploads (through content hashing SHA256)
+- [X] Add "Sync Now" button in settings
+- [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
+- [X] Create a separate General & Integrations tab in settings
+- [X] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
+- [X] Test the accessToken expires refresh works or not
+- [X] Allow users to choose which Dropbox folders to sync - (Selected folder id is stored, the chooser script works but, Folder selected is not displayed, files from outside those folder are also processed)
+- [X] Fix ui on mobile devices & make it responsive for all pages
 - [ ] Search across all conversations
 - [ ] Extract & display Document Type, Parties Involved, Date, Location
+- [ ] Add tool to extract summary, determine type of document, & generate tags & display all this
+- [ ] Document is added through dropbox & if I upload same document through platform it doesn't detect duplication
 
 ## UI Improvements
 
@@ -114,15 +123,15 @@
 
 ## Integrations
 
-- [ ] Add Dropbox Integration
+- [X] Add Dropbox Integration
 - [ ] Add Drive Integration
 
 ## Additional Changes
 
 - [X] Create a DB in Neon
 - [X] Deploy to vercel under subdomain
+- [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [ ] Integrate QStash to queue background OCR/embedding jobs
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
@@ -132,3 +141,4 @@
 - [ ] Create a landing page
 - [ ] Add Upstash Search for dashboard search
 - [ ] Add pagination & chunking optimizations
+- [ ] Ability to add comments & collaborate with team members

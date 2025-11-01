@@ -7,6 +7,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+export const metadata = {
+  title: "Sign In",
+  description:
+    "Sign in to your DMS account to access your documents and chat with AI.",
+};
+
 export default function SignInPage() {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
