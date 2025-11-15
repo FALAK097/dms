@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { processNewFile } from "@/lib/dropbox-sync";
+import { publishBatchFileProcessingJobs } from "@/lib/upstash/qstash";
 
 export async function POST(request) {
   try {
@@ -69,7 +69,7 @@ export async function POST(request) {
     });
 
     let cursor = null;
-    let newFilesCount = 0;
+    const filesToProcess = [];
     let hasMore = true;
 
     while (hasMore) {
@@ -111,8 +111,7 @@ export async function POST(request) {
 
       for (const entry of result.entries) {
         if (entry[".tag"] === "file") {
-          const processed = await processNewFile(session.user.id, entry);
-          if (processed) newFilesCount++;
+          filesToProcess.push(entry);
         }
       }
 
@@ -129,11 +128,28 @@ export async function POST(request) {
       hasMore = result.has_more;
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `Sync completed. ${newFilesCount} new file(s) imported from selected folder.`,
-      newFilesCount,
-    });
+    if (filesToProcess.length > 0) {
+      const queueResult = await publishBatchFileProcessingJobs(
+        session.user.id,
+        filesToProcess,
+        { source: "manual_sync" }
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: `${queueResult.queuedCount} file(s) queued for processing. They will appear in your dashboard shortly.`,
+        queuedCount: queueResult.queuedCount,
+        failedCount: queueResult.failedCount,
+      });
+    } else {
+      console.log("ℹ️  No new files to sync");
+      return NextResponse.json({
+        success: true,
+        message: "No new files to sync.",
+        queuedCount: 0,
+        failedCount: 0,
+      });
+    }
   } catch (error) {
     console.error("Manual sync error:", error);
     return NextResponse.json(

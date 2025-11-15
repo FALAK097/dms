@@ -4,19 +4,39 @@ import { extractTextFromPDF } from "@/lib/ocr";
 import { upsertEmbeddings } from "@/lib/upstash/vector";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { verifyQStashSignature } from "@/lib/upstash/qstash";
 
 export async function POST(request) {
   let documentId;
-  try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+  let isQStashRequest = false;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const headersList = await headers();
+    const qstashSignature = headersList.get("upstash-signature");
+
+    let body;
+    if (qstashSignature) {
+      isQStashRequest = true;
+      const verification = await verifyQStashSignature(request);
+      if (!verification.valid) {
+        console.error("Invalid QStash signature");
+        return NextResponse.json(
+          { error: "Invalid signature" },
+          { status: 401 }
+        );
+      }
+      body = verification.body;
+    } else {
+      const session = await auth.api.getSession({
+        headers: headersList,
+      });
+
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      body = await request.json();
     }
 
-    const body = await request.json();
     documentId = body.documentId;
 
     if (!documentId) {
@@ -37,13 +57,21 @@ export async function POST(request) {
       );
     }
 
-    if (document.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!isQStashRequest) {
+      const session = await auth.api.getSession({
+        headers: await headers(),
+      });
+      if (document.userId !== session.user.id) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     await prisma.document.update({
       where: { id: documentId },
-      data: { status: "PROCESSING" },
+      data: {
+        status: "PROCESSING",
+        retryCount: { increment: 1 },
+      },
     });
 
     let response;
@@ -94,6 +122,7 @@ export async function POST(request) {
         data: {
           status: "FAILED",
           embeddingsError: result.error || "Text extraction failed",
+          lastError: result.error,
         },
       });
 
@@ -129,6 +158,7 @@ export async function POST(request) {
           status: "FAILED",
           embeddingsError:
             embeddingResult.error || "Embeddings generation failed",
+          lastError: embeddingResult.error,
         },
       });
 
@@ -150,6 +180,7 @@ export async function POST(request) {
         embeddingsDone: true,
         chunkCount: embeddingResult.chunkCount,
         embeddingsError: null,
+        processingCompletedAt: new Date(),
       },
     });
 
@@ -172,6 +203,7 @@ export async function POST(request) {
           data: {
             status: "FAILED",
             embeddingsError: error.message || "Unknown error occurred",
+            lastError: error.message,
           },
         });
       } catch (updateError) {

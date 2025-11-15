@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { processNewFile } from "@/lib/dropbox-sync";
+import { publishBatchFileProcessingJobs } from "@/lib/upstash/qstash";
 
 export async function GET(request) {
   try {
@@ -61,11 +61,9 @@ export async function POST(request) {
     if (payload.list_folder && payload.list_folder.accounts) {
       const accounts = payload.list_folder.accounts;
 
-      console.log(`Received webhook for accounts: ${accounts.join(", ")}`);
       await Promise.all(
         accounts.map(async (dropboxAccountId) => {
           try {
-            console.log(`Processing changes for account: ${dropboxAccountId}`);
             await processDropboxChanges(dropboxAccountId);
           } catch (error) {
             console.error(
@@ -76,8 +74,6 @@ export async function POST(request) {
         })
       );
     }
-
-    console.log("Webhook processing completed");
 
     return new NextResponse("", { status: 200 });
   } catch (error) {
@@ -136,6 +132,7 @@ async function processDropboxChanges(dropboxAccountId) {
 
     let cursor = user?.dropboxWebhookCursor || null;
     let hasMore = true;
+    const filesToProcess = [];
 
     while (hasMore) {
       let result;
@@ -189,9 +186,8 @@ async function processDropboxChanges(dropboxAccountId) {
 
       for (const entry of result.entries) {
         if (entry[".tag"] === "file") {
-          await processNewFile(account.userId, entry);
+          filesToProcess.push(entry);
         } else if (entry[".tag"] === "deleted") {
-          console.log(`File deleted: ${entry.path_display}`);
         }
       }
 
@@ -206,6 +202,16 @@ async function processDropboxChanges(dropboxAccountId) {
       });
 
       hasMore = result.has_more;
+    }
+
+    if (filesToProcess.length > 0) {
+      const result = await publishBatchFileProcessingJobs(
+        account.userId,
+        filesToProcess,
+        { source: "webhook" }
+      );
+    } else {
+      console.log("ℹ️  No new files to process");
     }
   } catch (error) {
     console.error("Error in processDropboxChanges:", error);

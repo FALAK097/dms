@@ -110,13 +110,13 @@
 - [X] Remove scrollbar in conversation list
 - [X] Double Tap conversation to edit it
 - [X] When I do @ and type that document should come up
+- [X] Fix the issue where entire folder is uploaded it blocks the docs rendering on table and if User refreshes it fails the document processing and docs remain in PENDING state
 - [ ] Scroll to bottom on new messages
 - [ ] Thinking animation
 - [ ] When a chat is opened it should always scroll to bottom for allowing Input
 - [ ] A scroll to bottom icon with smooth scroll
 - [ ] Store the state of sidebar collapsed or not
 - [ ] For failed processed document provide an option to re-process with max 3 retries
-- [ ] Fix the issue where entire folder is uploaded it blocks the docs rendering on table and if User refreshes it fails the document processing and docs remain in PENDING state
 - [ ] Do not display the error on document viewer
 - [ ] Fix issue where the GET /documents route is being called continuously (make use of `use cache` directives)
 - [ ] When back button is clicked from detailed document viewer it redirects to /dashboard and does not maintain the nuqs url params
@@ -131,8 +131,8 @@
 - [X] Create a DB in Neon
 - [X] Deploy to vercel under subdomain
 - [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
+- [X] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
 - [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
 - [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
