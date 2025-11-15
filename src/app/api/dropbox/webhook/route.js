@@ -61,15 +61,23 @@ export async function POST(request) {
     if (payload.list_folder && payload.list_folder.accounts) {
       const accounts = payload.list_folder.accounts;
 
-      for (const dropboxAccountId of accounts) {
-        processDropboxChanges(dropboxAccountId).catch((error) => {
-          console.error(
-            `Error processing changes for account ${dropboxAccountId}:`,
-            error
-          );
-        });
-      }
+      console.log(`Received webhook for accounts: ${accounts.join(", ")}`);
+      await Promise.all(
+        accounts.map(async (dropboxAccountId) => {
+          try {
+            console.log(`Processing changes for account: ${dropboxAccountId}`);
+            await processDropboxChanges(dropboxAccountId);
+          } catch (error) {
+            console.error(
+              `Error processing changes for account ${dropboxAccountId}:`,
+              error
+            );
+          }
+        })
+      );
     }
+
+    console.log("Webhook processing completed");
 
     return new NextResponse("", { status: 200 });
   } catch (error) {
