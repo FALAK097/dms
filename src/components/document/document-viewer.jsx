@@ -27,6 +27,7 @@ export const DocumentViewer = () => {
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState(null);
 
   useEffect(() => {
     if (!documentId) {
@@ -39,6 +40,9 @@ export const DocumentViewer = () => {
         setLoading(true);
         const response = await documentAPI.getById(documentId);
         setDocument(response.document);
+
+        const urlResponse = await documentAPI.getDownloadUrl(documentId);
+        setDownloadUrl(urlResponse.downloadUrl);
       } catch (error) {
         console.error("Error fetching document:", error);
         toast.error("Failed to load document");
@@ -49,20 +53,20 @@ export const DocumentViewer = () => {
     };
 
     fetchDocument();
-  }, [documentId]);
+  }, [documentId, router]);
 
   const handleDownload = async () => {
-    if (!document) return;
+    if (!document || !downloadUrl) return;
     try {
-      const response = await fetch(document.url);
+      const response = await fetch(downloadUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+      const link = window.document.createElement("a");
       link.href = url;
       link.download = document.name;
-      document.body.appendChild(link);
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
       URL.revokeObjectURL(url);
       toast.success("Download started");
     } catch (error) {
@@ -142,8 +146,8 @@ export const DocumentViewer = () => {
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : document ? (
-          <PDFViewer fileUrl={document.url} />
+        ) : document && downloadUrl ? (
+          <PDFViewer fileUrl={downloadUrl} />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             Document not found

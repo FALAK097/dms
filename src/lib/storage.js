@@ -1,9 +1,12 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
+  HeadObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { randomUUID } from "crypto";
 
 export const s3Client = new S3Client({
   endpoint: process.env.DO_SPACES_ENDPOINT_URL,
@@ -23,19 +26,70 @@ export async function uploadToSpaces(file, key) {
     Key: key,
     Body: buffer,
     ContentType: file.type,
-    ACL: "public-read",
   };
 
   await s3Client.send(new PutObjectCommand(params));
 
-  return getCdnUrl(key);
+  return key;
 }
 
 export function generateDocumentKey(userId, fileName) {
-  const timestamp = Date.now();
+  const uuid = randomUUID();
   const baseName = fileName.split("/").pop().split("\\").pop();
   const sanitized = baseName.replace(/[^a-zA-Z0-9.-]/g, "_");
-  return `documents/${userId}/${timestamp}-${sanitized}`;
+  return `uploads/${userId}/${uuid}-${sanitized}`;
+}
+
+export async function generatePresignedUploadUrl(
+  key,
+  contentType,
+  expiresIn = 300
+) {
+  const command = new PutObjectCommand({
+    Bucket: process.env.DO_SPACES_NAME,
+    Key: key,
+    ContentType: contentType,
+  });
+
+  const presignedUrl = await getSignedUrl(s3Client, command, {
+    expiresIn,
+  });
+
+  return presignedUrl;
+}
+
+export async function generatePresignedDownloadUrl(key, expiresIn = 300) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.DO_SPACES_NAME,
+    Key: key,
+  });
+
+  const presignedUrl = await getSignedUrl(s3Client, command, {
+    expiresIn,
+  });
+
+  return presignedUrl;
+}
+
+export async function verifyObjectExists(key) {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: process.env.DO_SPACES_NAME,
+      Key: key,
+    });
+
+    const result = await s3Client.send(command);
+    return {
+      exists: true,
+      size: result.ContentLength,
+      contentType: result.ContentType,
+    };
+  } catch (error) {
+    if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
+      return { exists: false };
+    }
+    throw error;
+  }
 }
 
 export async function deleteFromSpaces(key) {
@@ -47,25 +101,6 @@ export async function deleteFromSpaces(key) {
   await s3Client.send(command);
 }
 
-export async function generatePresignedUploadUrl(key, contentType) {
-  const command = new PutObjectCommand({
-    Bucket: process.env.DO_SPACES_NAME,
-    Key: key,
-    ContentType: contentType,
-    ACL: "public-read",
-  });
-
-  const presignedUrl = await getSignedUrl(s3Client, command, {
-    expiresIn: 900,
-  });
-
-  return presignedUrl;
-}
-
 export function getCdnUrl(key) {
-  const endpoint = process.env.DO_SPACES_ENDPOINT_URL.replace("https://", "");
-  return `https://${process.env.DO_SPACES_NAME}.${endpoint.replace(
-    "digitaloceanspaces.com",
-    "cdn.digitaloceanspaces.com"
-  )}/${key}`;
+  return key;
 }

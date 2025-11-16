@@ -43,6 +43,7 @@ export function UploadDialog({ onComplete }) {
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState("");
   const folderInputRef = useRef(null);
 
   const addFiles = useCallback((incoming = []) => {
@@ -90,20 +91,70 @@ export function UploadDialog({ onComplete }) {
 
   const startUpload = async () => {
     setUploading(true);
+    setUploadStatus(`Starting upload of ${files.length} files...`);
+
+    const uploadedFiles = new Set();
+    const duplicateFiles = [];
+    const failedFiles = [];
+
     try {
-      const result = await documentAPI.upload(files);
+      const result = await documentAPI.upload(files, (progress) => {
+        if (progress.status === "uploading") {
+          setUploadStatus(
+            `Uploading "${progress.fileName}" (${progress.progress}%)... ${progress.completed}/${progress.total} completed`
+          );
+        } else if (progress.status === "waiting") {
+          setUploadStatus(
+            `${progress.message} (${progress.queueLength} files in queue)`
+          );
+        } else if (progress.status === "completed") {
+          uploadedFiles.add(progress.fileName);
+          setUploadStatus(
+            `Uploaded "${progress.fileName}" ✓ (${progress.completed}/${progress.total})`
+          );
+        } else if (progress.status === "duplicate") {
+          duplicateFiles.push(progress);
+          setUploadStatus(
+            `Skipped duplicate "${progress.fileName}" (${progress.completed}/${progress.total})`
+          );
+        } else if (progress.status === "failed") {
+          failedFiles.push(progress);
+          setUploadStatus(
+            `Failed to upload "${progress.fileName}" (${progress.completed}/${progress.total})`
+          );
+        }
+      });
+
       setFiles([]);
+      setUploadStatus("");
       setOpen(false);
 
       if (result.count > 0) {
-        toast.success(`Successfully uploaded ${result.count} file(s)`);
+        toast.success(`Successfully uploaded ${result.count} file(s)`, {
+          description:
+            result.queued > result.count
+              ? `${
+                  result.queued - result.count
+                } files are still processing in the background`
+              : undefined,
+        });
       }
 
       if (result.duplicates && result.duplicates.length > 0) {
-        result.duplicates.forEach((dup) => {
-          toast.info(`"${dup.fileName}" already exists`, {
-            description: "Skipped duplicate file",
-          });
+        toast.info(`${result.duplicates.length} duplicate(s) skipped`, {
+          description: result.duplicates
+            .slice(0, 3)
+            .map((d) => d.fileName)
+            .join(", "),
+        });
+      }
+
+      if (result.failed && result.failed.length > 0) {
+        toast.error(`${result.failed.length} file(s) failed to upload`, {
+          description: result.failed
+            .slice(0, 3)
+            .map((f) => f.fileName)
+            .join(", "),
         });
       }
 
@@ -114,6 +165,7 @@ export function UploadDialog({ onComplete }) {
       toast.error("Upload failed", {
         description: errorMessage || "Please try again later",
       });
+      setUploadStatus("");
     } finally {
       setUploading(false);
     }
@@ -197,6 +249,11 @@ export function UploadDialog({ onComplete }) {
         </div>
 
         <div className="space-y-3">
+          {uploadStatus && (
+            <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+              {uploadStatus}
+            </div>
+          )}
           {files.length > 0 ? (
             <>
               <div className="text-sm font-medium">

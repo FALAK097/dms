@@ -9,6 +9,8 @@
 - Max chunks token `800`
 - Tools `total_documents`, `find_document_by_name`
 - Max file size `500 mb` and `50` max files per request
+- Upload Limit `10` docs per `5` mins
+- Download Limit `50` docs per `5` mins
 
 ## Learnings
 
@@ -132,8 +134,9 @@
 - [X] Deploy to vercel under subdomain
 - [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [X] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
+- [X] Encrypt file URLs or restrict via signed URLs from DO Spaces
+- [X] Add IndexedDB to queue documents upload along with redis rate limit allowing users to refresh page and upload resumes in background once window is available
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
 - [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
 - [ ] Add OTP Verification

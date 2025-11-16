@@ -5,6 +5,7 @@ import { upsertEmbeddings } from "@/lib/upstash/vector";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { verifyQStashSignature } from "@/lib/upstash/qstash";
+import { generatePresignedDownloadUrl } from "@/lib/storage";
 
 export async function POST(request) {
   let documentId;
@@ -74,13 +75,15 @@ export async function POST(request) {
       },
     });
 
+    const downloadUrl = await generatePresignedDownloadUrl(document.key, 3600);
+
     let response;
     let retries = 3;
     let lastError;
 
     for (let i = 0; i < retries; i++) {
       try {
-        response = await fetch(document.url, {
+        response = await fetch(downloadUrl, {
           headers: {
             "Cache-Control": "no-cache",
           },

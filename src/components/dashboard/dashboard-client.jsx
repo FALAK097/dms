@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { UploadDialog } from "@/components/dashboard/upload-dialog";
 import { DocumentTable } from "@/components/dashboard/document-table";
+import { UploadQueueStatus } from "@/components/dashboard/upload-queue-status";
 
 export function DashboardClient() {
   const [query, setQuery] = useState("");
@@ -39,6 +40,8 @@ export function DashboardClient() {
       </div>
 
       <DocumentTable searchQuery={query} refreshKey={refreshKey} />
+
+      <UploadQueueStatus />
     </div>
   );
 }
