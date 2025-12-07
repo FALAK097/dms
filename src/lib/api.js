@@ -247,14 +247,46 @@ class UploadQueue {
         });
 
         const document = confirmResponse.data.documents?.[0];
-        if (document?.id) {
-          documentAPI.processDocument(document.id).catch((error) => {
-            console.error(
-              `Failed to trigger processing for document ${document.id}:`,
-              error
-            );
-          });
+        const failedFile = confirmResponse.data.failed?.[0];
+
+        if (failedFile) {
+          console.warn(
+            `Confirm failed for ${item.file.name}: ${failedFile.reason}`
+          );
+          if (item.onProgress) {
+            item.onProgress({
+              fileName: item.file.name,
+              status: "failed",
+              error: failedFile.reason,
+              queueLength: this.queue.length,
+            });
+          }
+          await this.removeFromQueue(0);
+          continue;
         }
+
+        if (!document?.id) {
+          console.error(
+            `No document returned from confirm for ${item.file.name}`
+          );
+          if (item.onProgress) {
+            item.onProgress({
+              fileName: item.file.name,
+              status: "failed",
+              error: "No document created",
+              queueLength: this.queue.length,
+            });
+          }
+          await this.removeFromQueue(0);
+          continue;
+        }
+
+        documentAPI.processDocument(document.id).catch((error) => {
+          console.error(
+            `Failed to trigger processing for document ${document.id}:`,
+            error
+          );
+        });
 
         if (item.onProgress) {
           item.onProgress({
@@ -335,9 +367,19 @@ export const documentAPI = {
         queued: 0,
       };
 
+      const totalFiles = files.length;
       let processedCount = 0;
+      let resolved = false;
 
       const progressHandler = (update) => {
+        const terminalStates = [
+          "completed",
+          "duplicate",
+          "failed",
+          "cancelled",
+        ];
+        const isTerminalState = terminalStates.includes(update.status);
+
         if (update.status === "completed") {
           results.completed.push(update.document);
           processedCount++;
@@ -353,18 +395,21 @@ export const documentAPI = {
             error: update.error,
           });
           processedCount++;
+        } else if (update.status === "cancelled") {
+          processedCount++;
         }
 
-        if (onUploadProgress) {
+        if (onUploadProgress && isTerminalState) {
           onUploadProgress({
             ...update,
             completed: results.completed.length,
-            total: files.length,
+            total: totalFiles,
             processedCount,
           });
         }
 
-        if (processedCount === files.length) {
+        if (!resolved && processedCount === totalFiles) {
+          resolved = true;
           resolve({
             success: true,
             documents: results.completed,

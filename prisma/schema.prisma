@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -95,6 +95,7 @@ model Document {
   retryCount            Int            @default(0)
   lastError             String?        @db.Text
 
+  @@unique([contentHash, userId], name: "unique_content_hash_per_user")
   @@index([userId])
   @@index([contentHash, userId])
   @@index([status, userId])

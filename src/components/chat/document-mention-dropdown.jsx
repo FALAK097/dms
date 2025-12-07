@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { documentAPI } from "@/lib/api";
 import { File, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ export function DocumentMentionDropdown({
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const selectedItemRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -25,6 +27,15 @@ export function DocumentMentionDropdown({
   useEffect(() => {
     setSelectedIndex(0);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (selectedItemRef.current && scrollContainerRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    }
+  }, [selectedIndex]);
 
   const loadDocuments = async () => {
     setLoading(true);
@@ -95,7 +106,10 @@ export function DocumentMentionDropdown({
         marginBottom: "8px",
       }}
     >
-      <div className="max-h-64 overflow-y-auto scrollbar-hide">
+      <div
+        className="max-h-64 overflow-y-auto scrollbar-hide"
+        ref={scrollContainerRef}
+      >
         {loading ? (
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -110,6 +124,7 @@ export function DocumentMentionDropdown({
           <div className="p-1">
             {filteredDocuments.map((doc, index) => (
               <button
+                ref={selectedIndex === index ? selectedItemRef : null}
                 key={doc.id}
                 onClick={() => onSelect(doc)}
                 className={cn(

@@ -7,10 +7,6 @@ import {
   getCdnUrl,
 } from "@/lib/storage";
 import { prisma } from "@/lib/db";
-import { rateLimit, auditLog } from "@/lib/upstash/redis";
-
-const UPLOAD_RATE_LIMIT = 10;
-const UPLOAD_RATE_WINDOW = 300;
 
 export async function POST(request) {
   try {
@@ -20,36 +16,6 @@ export async function POST(request) {
 
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const rateLimitResult = await rateLimit(
-      `upload:${session.user.id}`,
-      UPLOAD_RATE_LIMIT,
-      UPLOAD_RATE_WINDOW
-    );
-
-    if (!rateLimitResult.success) {
-      await auditLog("rate_limit_exceeded", {
-        userId: session.user.id,
-        action: "upload_url_request",
-        remaining: rateLimitResult.remaining,
-      });
-
-      return NextResponse.json(
-        {
-          error: "Rate limit exceeded",
-          retryAfter: rateLimitResult.reset,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": rateLimitResult.reset.toString(),
-            "X-RateLimit-Limit": UPLOAD_RATE_LIMIT.toString(),
-            "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-            "X-RateLimit-Reset": rateLimitResult.reset.toString(),
-          },
-        }
-      );
     }
 
     const body = await request.json();
@@ -102,31 +68,15 @@ export async function POST(request) {
 
     const presignedUrl = await generatePresignedUploadUrl(key, fileType, 300);
 
-    await auditLog("upload_url_generated", {
-      userId: session.user.id,
-      fileName,
-      fileSize,
+    return NextResponse.json({
+      presignedUrl,
       key,
+      publicUrl: getCdnUrl(key),
+      fileName,
+      fileType,
+      fileSize,
+      contentHash,
     });
-
-    return NextResponse.json(
-      {
-        presignedUrl,
-        key,
-        publicUrl: getCdnUrl(key),
-        fileName,
-        fileType,
-        fileSize,
-        contentHash,
-      },
-      {
-        headers: {
-          "X-RateLimit-Limit": UPLOAD_RATE_LIMIT.toString(),
-          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
-          "X-RateLimit-Reset": rateLimitResult.reset.toString(),
-        },
-      }
-    );
   } catch (error) {
     console.error("Presigned URL generation error:", error);
     return NextResponse.json(

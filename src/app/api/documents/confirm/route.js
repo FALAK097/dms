@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyObjectExists } from "@/lib/storage";
 import { publishOCRProcessingJob } from "@/lib/upstash/qstash";
-import { auditLog } from "@/lib/upstash/redis";
 
 export async function POST(request) {
   try {
@@ -51,12 +50,6 @@ export async function POST(request) {
         console.error(
           `Security violation: User ${session.user.id} attempted to confirm file with key: ${key}`
         );
-
-        await auditLog("security_violation", {
-          userId: session.user.id,
-          attemptedKey: key,
-          fileName,
-        });
 
         failedFiles.push({ fileName, reason: "Unauthorized key" });
         continue;
@@ -122,14 +115,6 @@ export async function POST(request) {
               status: "PENDING",
             },
           });
-
-          await auditLog("document_uploaded", {
-            userId: session.user.id,
-            documentId: document.id,
-            fileName,
-            fileSize,
-            processingMode: "direct",
-          });
         } else {
           const qstashResult = await publishOCRProcessingJob(
             document.id,
@@ -144,14 +129,6 @@ export async function POST(request) {
                 status: "PROCESSING",
                 processingStartedAt: new Date(),
               },
-            });
-
-            await auditLog("document_uploaded", {
-              userId: session.user.id,
-              documentId: document.id,
-              fileName,
-              fileSize,
-              qstashMessageId: qstashResult.messageId,
             });
           } else {
             console.error(
@@ -169,8 +146,29 @@ export async function POST(request) {
 
         createdDocuments.push(document);
       } catch (dbError) {
-        console.error(`Failed to create document ${fileName}:`, dbError);
-        failedFiles.push({ fileName, reason: "Database error" });
+        // Handle unique constraint violation for contentHash
+        if (
+          dbError.code === "P2002" &&
+          dbError.meta?.target?.includes("unique_content_hash_per_user")
+        ) {
+          console.log(
+            `Unique constraint violation: Document with same content hash already exists for ${fileName}`
+          );
+          const existingDocument = await prisma.document.findFirst({
+            where: {
+              contentHash,
+              userId: session.user.id,
+            },
+          });
+          failedFiles.push({
+            fileName,
+            reason: "Document already exists",
+            existingDocumentId: existingDocument?.id,
+          });
+        } else {
+          console.error(`Failed to create document ${fileName}:`, dbError);
+          failedFiles.push({ fileName, reason: "Database error" });
+        }
       }
     }
 

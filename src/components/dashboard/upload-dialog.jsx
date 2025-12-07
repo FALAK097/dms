@@ -48,10 +48,14 @@ export function UploadDialog({ onComplete }) {
 
   const addFiles = useCallback((incoming = []) => {
     setFiles((prev) => {
-      const existing = new Set(prev.map((f) => f.name + f.size));
+      const existing = new Set(
+        prev.map((f) => `${f.name}__${f.size}__${f.lastModified}`)
+      );
       const filtered = incoming
         .filter(isAllowed)
-        .filter((f) => !existing.has(f.name + f.size));
+        .filter(
+          (f) => !existing.has(`${f.name}__${f.size}__${f.lastModified}`)
+        );
       return [...prev, ...filtered];
     });
   }, []);
@@ -263,7 +267,7 @@ export function UploadDialog({ onComplete }) {
                 <ul className="divide-y">
                   {files.map((f, idx) => (
                     <li
-                      key={f.name + f.size + idx}
+                      key={`${f.name}__${f.size}__${f.lastModified}__${idx}`}
                       className="flex items-center justify-between gap-3 p-3"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">

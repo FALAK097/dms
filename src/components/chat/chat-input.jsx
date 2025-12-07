@@ -128,7 +128,7 @@ export function ChatInput({
 
       <div
         ref={containerRef}
-        className="flex flex-col gap-2 sm:flex-row sm:items-end"
+        className="relative flex flex-col gap-2 sm:flex-row sm:items-end"
       >
         <Textarea
           ref={textareaRef}
