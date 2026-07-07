@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { uploadToSpaces, generateDocumentKey } from "@/lib/storage";
-import { publishOCRProcessingJob } from "@/lib/upstash/qstash";
-import { verifySignatureAppRouter } from "@upstash/qstash/nextjs";
+import { uploadToR2, generateDocumentKey } from "@/lib/storage";
+import {
+  publishOCRProcessingJob,
+  verifyInternalJobRequest,
+} from "@/lib/cloudflare/jobs";
 
-async function handler(request) {
+export async function POST(request) {
   try {
+    if (!verifyInternalJobRequest(request)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const { userId, fileEntry, source } = body;
 
@@ -78,7 +84,7 @@ async function handler(request) {
       type: "application/pdf",
     };
 
-    const url = await uploadToSpaces(file, key);
+    const url = await uploadToR2(file, key);
 
     const document = await prisma.document.create({
       data: {
@@ -100,7 +106,7 @@ async function handler(request) {
       await prisma.document.update({
         where: { id: document.id },
         data: {
-          qstashMessageId: ocrJobResult.messageId,
+          backgroundJobId: ocrJobResult.jobId,
         },
       });
     } else {
@@ -131,5 +137,3 @@ async function handler(request) {
     );
   }
 }
-
-export const POST = verifySignatureAppRouter(handler);

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,5 +19,9 @@ export default async function ChatPage() {
     redirect("/");
   }
 
-  return <ChatWindow />;
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full p-8 text-muted-foreground">Loading chat...</div>}>
+      <ChatWindow />
+    </Suspense>
+  );
 }

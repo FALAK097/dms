@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { uploadToSpaces, generateDocumentKey } from "@/lib/storage";
+import { uploadToR2, generateDocumentKey } from "@/lib/storage";
 
 export async function POST(request) {
   try {
@@ -31,7 +31,7 @@ export async function POST(request) {
       const key = generateDocumentKey(session.user.id, fileName);
 
       try {
-        const url = await uploadToSpaces(file, key);
+        const url = await uploadToR2(file, key);
 
         const document = await prisma.document.create({
           data: {

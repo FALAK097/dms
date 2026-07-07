@@ -1,41 +1,40 @@
 # DMS Project TODOs
 
-- Threshold of `0.6` for vector filter
-- Context of `20` previous messages in an conversation
-- Openai `gpt-4o-mini` model for `Chat`
-- Google `gemini-2.0-flash-001` model for `OCR`
-- Openai `text-embedding-3-small` model for `Vector Embeddings`
-- Openai tiktoken `cl100k_base`
-- Max chunks token `800`
-- Tools `total_documents`, `find_document_by_name`
-- Max file size `500 mb` and `50` max files per request
-- Upload Limit `10` docs per `5` mins
-- Download Limit `50` docs per `5` mins
+## Configuration / Constants
+
+- Vector similarity threshold: `0.6`
+- Conversation context window: `20` previous messages
+- Chat model: OpenAI `gpt-4o-mini`
+- OCR model: Google `gemini-2.0-flash-001`
+- Embedding model: OpenAI `text-embedding-3-small`
+- Tokenizer: OpenAI tiktoken `cl100k_base`
+- Max chunk tokens: `800`
+- Available tools: `total_documents`, `find_document_by_name`
+- Max file size: `500 MB`, max files per request: `50`
+- Upload rate limit: `10` docs per `5` mins
+- Download rate limit: `50` docs per `5` mins
 
 ## Learnings
 
-### Vercel DO Spaces Pre-Signed Urls for allowing larger file uploads
+### Vercel Cloudflare R2 Pre-Signed URLs for larger file uploads
 
-1. Vercel on free tier allows a max of 4.5mb file upload in a request body, so even though DO Spaces can handle large file uploads it was failing.
+1. Vercel on free tier allows a max of 4.5 MB file upload in a request body, so even though Cloudflare R2 can handle large file uploads it was failing.
 
     - 1.1. Client → Vercel API with file in body
-
-    - 1.2. Vercel API → DO Spaces upload
-
+    - 1.2. Vercel API → Cloudflare R2 upload
     - 1.3. Vercel API → Database save
-
     - 1.4. Vercel API → Client response
 
-2. Their I added `presigned-urls`.
-3. New flow
+2. Then I added `presigned-urls`.
+
+3. Current flow:
 
     - 3.1. Client → GET presigned URL from Vercel API
       └─ Request: { fileName, fileType, fileSize }
       └─ Response: { presignedUrl, key, publicUrl }
 
-    - 3.2. Client → PUT file directly to DO Spaces using presignedUrl
+    - 3.2. Client → PUT file directly to Cloudflare R2 using presignedUrl
       └─ File NEVER touches Vercel servers
-      └─ Uses AWS signed authentication
 
     - 3.3. Client → Confirm upload to Vercel API
       └─ Request: { files: [{ key, publicUrl, ... }] }
@@ -43,105 +42,105 @@
 
     - 3.4. Client → Trigger document processing (existing flow)
 
+## Infrastructure Migration
+
+- [X] Migrate from Upstash (QStash, Redis) to Cloudflare (Queues, KV)
+- [X] Migrate from DigitalOcean Spaces to Cloudflare R2 for document storage
+- [X] Migrate from Upstash Vector to Cloudflare Vectorize for embeddings
+- [X] Remove all Upstash and DigitalOcean dependencies, env vars, and references
+- [X] Add Cloudflare Worker (dms-jobs) with Queue, KV, Vectorize, and R2 bindings
+- [X] Add signed URL support for secure R2 access without Cloudflare API token in Vercel
+
 ## Dashboard / Document Management
 
 - [X] Implement file uploads from dashboard
-- [X] Store uploaded files in DigitalOcean Spaces (S3 compatible)
+- [X] Store uploaded files in Cloudflare R2
 - [X] Save document metadata in Postgres (`Document` table)
 - [X] Show upload progress and skeleton loading UI
 - [X] Display the uploaded documents
-- [X] Provide option to Delete a document
+- [X] Provide option to delete a document
 - [X] Implement search, filter, and pagination for dashboard table
+- [X] Add IndexedDB to queue document uploads (survives page refresh)
 
 ## Document Parsing / OCR
 
 - [X] Gemini OCR
 - [X] Store extracted text in `Document.extractedText`
 - [X] Update document status to `READY` after successful parsing
-- [X] Update the status in UI, provide a refresh icon
-- [X] Show a toast with doc name once OCR of particular document is done
+- [X] Update status in UI, provide a refresh icon
+- [X] Show a toast with doc name once OCR completes
 
 ## Vector Embeddings / Semantic Search
 
 - [X] Split extracted text into chunks (~500–1000 tokens)
-- [X] Generate embeddings using custom Openai embedding models
-- [X] Store chunks and embeddings in Upstash Vector DB
+- [X] Generate embeddings using OpenAI embedding models
+- [X] Store chunks and embeddings in Cloudflare Vectorize
 - [X] Add vector deletion when user deletes a document
 - [X] Mark `Document.embeddingsDone = true` after embeddings are stored
 
 ## Chat Functionality
 
 - [X] Implement sending messages to Vercel AI SDK (GPT-4o-mini)
-- [X] Initial Vercel AI SDK, Upstash Vector chat setup
+- [X] Initial Vercel AI SDK + Cloudflare Vectorize chat setup
 - [X] Load all chats for the current user in sidebar (`Chat` table)
 - [X] Save all messages in `Message` table (`USER` / `ASSISTANT`)
-- [X] Store all conversations and add `zustand` for state management
+- [X] Store conversations in zustand for state management
 - [X] Show attached doc for reference in chat
-- [X] Add tool to get all the documents & find documents if their is no proper context
-- [X] Fix to avoid tool calling when asking of docs of year 2022 (filtering)
+- [X] Add tool to get all documents & find documents by name
+- [X] Fix tool calling when asking about documents from specific years (filtering)
 - [X] Add conversation history for better context & responses
-- [X] Make sure documents & chat, vector search are user specific
-- [ ] Improve the source linking
-- [ ] Add Upstash Redis for caching recent searches
+- [X] Make documents, chat, and vector search user-specific
+- [ ] Improve source linking in chat responses
+- [ ] Add Cloudflare KV for caching recent searches
 - [ ] Avoid vector search for generic questions
-- [ ] Improve Prompt for better response
+- [ ] Improve prompt for better responses
 
-## Chore TODO's
+## Dropbox Integration
 
-- [X] Add `nuqs` for state url management for documents table
-- [X] Add support of @ tag in chat to know about particular document
-- [X] Implement streaming response
-- [X] Detail document page, where document can be viewed & change the sources link in chat
-- [X] Add presigned urls for direct DO Spaces upload for large document uploads
-- [X] Prevent duplicate document uploads (through content hashing SHA256)
+- [X] Add Dropbox integration
 - [X] Add "Sync Now" button in settings
-- [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
-- [X] Create a separate General & Integrations tab in settings
-- [X] I am logged in with 1 email & try to connect Dropbox which is of different account then their is a separate User created for that and I get logged in with that account
-- [X] Test the accessToken expires refresh works or not
-- [X] Allow users to choose which Dropbox folders to sync - (Selected folder id is stored, the chooser script works but, Folder selected is not displayed, files from outside those folder are also processed)
-- [X] Fix ui on mobile devices & make it responsive for all pages
-- [ ] Search across all conversations
-- [ ] Extract & display Document Type, Parties Involved, Date, Location
-- [ ] Add tool to extract summary, determine type of document, & generate tags & display all this
-- [ ] Document is added through dropbox & if I upload same document through platform it doesn't detect duplication
+- [X] Process new Dropbox files via webhook (batch/single)
+- [X] Create separate General & Integrations tabs in settings
+- [X] Allow users to choose which Dropbox folders to sync
+- [X] Fix user identity switching when connecting a different Dropbox account
+- [X] Test Dropbox access token refresh flow
+- [ ] Deduplicate: document added via Dropbox not detected as duplicate when re-uploaded through platform
+- [ ] Add Google Drive Integration
 
 ## UI Improvements
 
-- [X] When hover over sidebar all conversations lists get's highlighted instead only specific conversation should be highlighted
+- [X] Fix sidebar hover (highlight only the hovered conversation)
 - [X] Remove scrollbar in conversation list
-- [X] Double Tap conversation to edit it
-- [X] When I do @ and type that document should come up
-- [X] Fix the issue where entire folder is uploaded it blocks the docs rendering on table and if User refreshes it fails the document processing and docs remain in PENDING state
+- [X] Double-tap conversation to edit title
+- [X] @-mention document search in chat
+- [X] Fix folder upload blocking document table rendering
+- [X] Make UI responsive on mobile devices
 - [ ] Scroll to bottom on new messages
-- [ ] Thinking animation
-- [ ] When a chat is opened it should always scroll to bottom for allowing Input
-- [ ] A scroll to bottom icon with smooth scroll
-- [ ] Store the state of sidebar collapsed or not
-- [ ] For failed processed document provide an option to re-process with max 3 retries
-- [ ] Do not display the error on document viewer
-- [ ] Fix issue where the GET /documents route is being called continuously (make use of `use cache` directives)
-- [ ] When back button is clicked from detailed document viewer it redirects to /dashboard and does not maintain the nuqs url params
-
-## Integrations
-
-- [X] Add Dropbox Integration
-- [ ] Add Drive Integration
+- [ ] Thinking animation for AI responses
+- [ ] Auto-scroll to bottom when opening a chat
+- [ ] Scroll-to-bottom button with smooth scroll
+- [ ] Persist sidebar collapsed/expanded state
+- [ ] Re-process failed documents (max 3 retries)
+- [ ] Hide error details on document viewer
+- [ ] Fix continuous GET /documents polling (use `use cache`)
+- [ ] Preserve nuqs URL params when navigating back from detail view
 
 ## Additional Changes
 
-- [X] Create a DB in Neon
-- [X] Deploy to vercel under subdomain
-- [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
-- [X] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
-- [X] Encrypt file URLs or restrict via signed URLs from DO Spaces
-- [X] Add IndexedDB to queue documents upload along with redis rate limit allowing users to refresh page and upload resumes in background once window is available
-- [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
-- [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
-- [ ] Add OTP Verification
-- [ ] Add google login option with Last Used
-- [ ] Create a landing page
-- [ ] Add Upstash Search for dashboard search
-- [ ] Add pagination & chunking optimizations
-- [ ] Ability to add comments & collaborate with team members
+- [X] Create Neon Postgres DB
+- [X] Deploy to Vercel under subdomain
+- [X] Create logo, favicon, SEO metadata, Open Graph image, robots.txt
+- [X] Integrate Cloudflare Queues for background OCR/embeddings (Vercel has 5 min timeout)
+- [X] Encrypt/restrict file access via signed URLs from Cloudflare R2
+- [ ] ClamAV virus/malware scanning on upload
+- [ ] Usage/stats page (OpenAI, Gemini OCR, Cloudflare costs)
+- [ ] Add Uploadthing / Vercel Blob as alternative storage option alongside R2
+- [ ] OTP verification
+- [ ] Google OAuth login
+- [ ] Landing page
+- [ ] Cloudflare-backed dashboard search
+- [ ] Pagination & chunking optimizations
+- [ ] Comments & collaboration
+- [ ] Search across all conversations
+- [ ] Extract & display Document Type, Parties Involved, Date, Location
+- [ ] Add tool to extract summary, determine document type, generate tags

@@ -89,7 +89,7 @@ model Document {
   embeddingsDone        Boolean        @default(false)
   embeddingsError       String?        @db.Text
   chunkCount            Int?
-  qstashMessageId       String?
+  backgroundJobId       String?
   processingStartedAt   DateTime?
   processingCompletedAt DateTime?
   retryCount            Int            @default(0)

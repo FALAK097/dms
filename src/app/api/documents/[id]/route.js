@@ -2,8 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { deleteFromSpaces } from "@/lib/storage";
-import { vectorIndex } from "@/lib/upstash/vector";
+import { deleteFromR2 } from "@/lib/storage";
+import { deleteEmbeddings } from "@/lib/cloudflare/vectorize";
 
 export async function GET(request, { params }) {
   try {
@@ -69,15 +69,11 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await deleteFromSpaces(document.key);
+    await deleteFromR2(document.key);
 
     if (document.embeddingsDone && document.chunkCount > 0) {
       try {
-        const vectorIds = Array.from(
-          { length: document.chunkCount },
-          (_, i) => `${id}-${i}`
-        );
-        await vectorIndex.delete(vectorIds);
+        await deleteEmbeddings(id, document.chunkCount);
       } catch (vectorError) {
         console.error("Failed to delete vectors:", vectorError);
       }

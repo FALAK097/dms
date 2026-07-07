@@ -16,7 +16,9 @@ export const ThemeToggle = ({ compact = false }) => {
   const [mounted, setMounted] = useState(false);
   const { state } = useSidebar();
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!mounted) return null;
 
@@ -40,6 +42,7 @@ export const ThemeToggle = ({ compact = false }) => {
 
   const button = (
     <button
+      type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className="text-sidebar-foreground hover:text-sidebar-accent-foreground w-full flex items-center justify-center gap-2 text-sm py-3 border-t group-data-[state=collapsed]:border-0 group-data-[state=collapsed]:justify-start group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:py-2"
     >

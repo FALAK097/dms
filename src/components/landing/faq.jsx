@@ -22,12 +22,12 @@ const faqs = [
   {
     question: "How long does document processing take?",
     answer:
-      "Most documents are processed within 2-3 minutes. Large documents may take up to 5 minutes. We use background processing with QStash to ensure your documents are ready quickly without blocking your workflow.",
+      "Most documents are processed within 2-3 minutes. Large documents may take up to 5 minutes. We use background processing with Cloudflare Queues to ensure your documents are ready quickly without blocking your workflow.",
   },
   {
     question: "Is my data secure?",
     answer:
-      "Yes! We use enterprise-grade security with encrypted storage, signed URLs, and secure authentication. Your documents are stored in DigitalOcean Spaces with industry-standard encryption.",
+      "Yes! We use enterprise-grade security with encrypted storage, signed URLs, and secure authentication. Your documents are stored in Cloudflare R2 with industry-standard encryption.",
   },
   {
     question: "Can I sync documents from cloud storage?",

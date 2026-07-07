@@ -213,7 +213,6 @@ class UploadQueue {
         await axios.put(presignedUrl, item.file, {
           headers: {
             "Content-Type": item.file.type,
-            "x-amz-acl": "public-read",
           },
           signal: abortController.signal,
           onUploadProgress: (progressEvent) => {

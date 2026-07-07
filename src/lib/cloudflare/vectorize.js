@@ -1,13 +1,45 @@
-import { Index } from "@upstash/vector";
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getEncoding } from "js-tiktoken";
 
-export const vectorIndex = Index.fromEnv();
-
-// const embeddingModel = openai.embedding("text-embedding-ada-002");
 const embeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
+
+function cloudflareWorkerUrl() {
+  const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
+
+  if (!workerUrl) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
+  }
+
+  return workerUrl;
+}
+
+async function vectorizeRequest(path, body) {
+  const token = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
+
+  if (!token) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
+  }
+
+  const response = await fetch(new URL(`/vectorize${path}`, cloudflareWorkerUrl()), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok || data?.success === false) {
+    const details = data?.error || response.statusText;
+    throw new Error(`Cloudflare Vectorize request failed: ${details}`);
+  }
+
+  return data?.result || data;
+}
 
 function generateChunks(input, maxTokens = 800, overlapTokens = 150) {
   const text = input.trim();
@@ -149,9 +181,10 @@ export async function upsertEmbeddings(
       };
     }
 
-    const toUpsert = chunkEmbeddings.map((chunk, i) => ({
+    const vectors = chunkEmbeddings.map((chunk, i) => ({
       id: `${resourceId}-${i}`,
-      vector: chunk.embedding,
+      values: chunk.embedding,
+      namespace: userId,
       metadata: {
         resourceId,
         content: chunk.content,
@@ -161,7 +194,11 @@ export async function upsertEmbeddings(
       },
     }));
 
-    await vectorIndex.upsert(toUpsert);
+    for (let i = 0; i < vectors.length; i += 1000) {
+      await vectorizeRequest("/upsert", {
+        vectors: vectors.slice(i, i + 1000),
+      });
+    }
 
     return {
       success: true,
@@ -185,26 +222,21 @@ export async function findRelevantContent(
 ) {
   try {
     const queryEmbedding = await generateEmbedding(query);
+    const filter = docId ? { resourceId: docId } : undefined;
 
-    const queryOptions = {
+    const results = await vectorizeRequest("/query", {
       vector: queryEmbedding,
       topK,
-      includeMetadata: true,
-    };
+      namespace: userId,
+      returnMetadata: "all",
+      returnValues: false,
+      ...(filter && { filter }),
+    });
 
-    let filters = [`userId = "${userId}"`];
-
-    if (docId) {
-      filters.push(`resourceId = "${docId}"`);
-    }
-
-    queryOptions.filter = filters.join(" AND ");
-
-    const results = await vectorIndex.query(queryOptions);
-
+    const matches = results?.matches || [];
     const scoreThreshold = docId ? 0 : 0.6;
 
-    return results
+    return matches
       .filter(
         (result) =>
           result.score >= scoreThreshold &&
@@ -221,5 +253,19 @@ export async function findRelevantContent(
   } catch (error) {
     console.error("Error finding relevant content:", error);
     return [];
+  }
+}
+
+export async function deleteEmbeddings(resourceId, chunkCount) {
+  if (!chunkCount || chunkCount < 1) {
+    return;
+  }
+
+  const ids = Array.from({ length: chunkCount }, (_, i) => `${resourceId}-${i}`);
+
+  for (let i = 0; i < ids.length; i += 1000) {
+    await vectorizeRequest("/delete_by_ids", {
+      ids: ids.slice(i, i + 1000),
+    });
   }
 }

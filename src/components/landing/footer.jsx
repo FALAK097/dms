@@ -98,7 +98,7 @@ export function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} DMS. All rights reserved.</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} DMS. All rights reserved.</p>
         </div>
       </div>
     </footer>
