@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 export function DropboxSignInButton({
-  callbackURL = "/settings?tab=integrations",
+  callbackURL = "/settings",
   variant = "outline",
   className = "",
   children = "Connect",

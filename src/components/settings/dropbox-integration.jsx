@@ -303,7 +303,7 @@ export const DropboxIntegration = ({ user }) => {
                   <div className="flex flex-col gap-2">
                     {!dropboxAccount ? (
                       <DropboxSignInButton
-                        callbackURL="/settings?tab=integrations"
+                        callbackURL="/settings"
                         onSuccess={fetchAccounts}
                         className="w-full"
                       />
@@ -390,7 +390,7 @@ export const DropboxIntegration = ({ user }) => {
                 <div className="flex gap-2 shrink-0">
                   {!dropboxAccount ? (
                     <DropboxSignInButton
-                      callbackURL="/settings?tab=integrations"
+                      callbackURL="/settings"
                       onSuccess={fetchAccounts}
                     />
                   ) : !selectedFolderName ? (
