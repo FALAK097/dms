@@ -1,9 +1,27 @@
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { getEncoding } from "js-tiktoken";
 
-const embeddingModel = openai.embedding("text-embedding-3-small");
+const geminiEmbeddingModel = google.embedding("text-embedding-004");
+const openaiEmbeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
+
+async function createEmbedding(values, options = {}) {
+  try {
+    return await embedMany({ model: geminiEmbeddingModel, values, ...options });
+  } catch {
+    return await embedMany({ model: openaiEmbeddingModel, values, ...options });
+  }
+}
+
+async function createSingleEmbedding(value, options = {}) {
+  try {
+    return await embed({ model: geminiEmbeddingModel, value, ...options });
+  } catch {
+    return await embed({ model: openaiEmbeddingModel, value, ...options });
+  }
+}
 
 function cloudflareWorkerUrl() {
   const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
@@ -136,10 +154,7 @@ async function generateEmbeddings(value) {
     return [];
   }
 
-  const { embeddings } = await embedMany({
-    model: embeddingModel,
-    values: chunks,
-  });
+  const { embeddings } = await createEmbedding(chunks);
 
   return embeddings.map((vector, i) => ({
     content: chunks[i],
@@ -149,10 +164,7 @@ async function generateEmbeddings(value) {
 
 async function generateEmbedding(value) {
   const input = value.replaceAll("\\n", " ");
-  const { embedding } = await embed({
-    model: embeddingModel,
-    value: input,
-  });
+  const { embedding } = await createSingleEmbedding(input);
   return embedding;
 }
 

@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { findRelevantContent } from "@/lib/cloudflare/vectorize";
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { streamText, tool } from "ai";
 import { z } from "zod";
 
@@ -194,8 +195,15 @@ export async function POST(request) {
       }),
     };
 
+    let chatModel;
+    try {
+      chatModel = google("gemini-3-flash-preview");
+    } catch {
+      chatModel = openai("gpt-4o-mini");
+    }
+
     const result = streamText({
-      model: openai("gpt-4o-mini"),
+      model: chatModel,
       tools: {
         total_documents: tool({
           description:

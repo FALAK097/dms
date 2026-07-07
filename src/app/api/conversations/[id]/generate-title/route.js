@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 
 export async function POST(request, { params }) {
@@ -57,8 +58,15 @@ Assistant: ${assistantMsg.content.substring(0, 200)}...
 
 Title:`;
 
+    let titleModel;
+    try {
+      titleModel = google("gemini-3-flash-preview");
+    } catch {
+      titleModel = openai("gpt-3.5-turbo");
+    }
+
     const { text } = await generateText({
-      model: openai("gpt-3.5-turbo"),
+      model: titleModel,
       prompt: prompt,
       maxTokens: 30,
       temperature: 0.7,

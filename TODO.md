@@ -4,9 +4,9 @@
 
 - Vector similarity threshold: `0.6`
 - Conversation context window: `20` previous messages
-- Chat model: OpenAI `gpt-4o-mini`
-- OCR model: Google `gemini-2.0-flash-001`
-- Embedding model: OpenAI `text-embedding-3-small`
+- Chat model: Google `gemini-3-flash-preview` (fallback: OpenAI `gpt-4o-mini`)
+- OCR model: Google `gemini-3-flash-preview`
+- Embedding model: Google `text-embedding-004` (fallback: OpenAI `text-embedding-3-small`)
 - Tokenizer: OpenAI tiktoken `cl100k_base`
 - Max chunk tokens: `800`
 - Available tools: `total_documents`, `find_document_by_name`

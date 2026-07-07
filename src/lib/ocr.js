@@ -1,25 +1,24 @@
-import { GoogleGenAI } from "@google/genai";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
 
-const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ocrModel = google("gemini-3-flash-preview");
 
 async function extractWithGemini(buffer) {
   try {
-    const base64Data = buffer.toString("base64");
-
     const prompt = `Extract all text from this PDF document. Return only the extracted text without any additional commentary or formatting. If the document contains tables, preserve their structure. If the document has multiple pages, extract text from all pages in order.`;
 
-    const response = await genai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [
+    const response = await generateText({
+      model: ocrModel,
+      messages: [
         {
-          parts: [
+          role: "user",
+          content: [
             {
-              inlineData: {
-                mimeType: "application/pdf",
-                data: base64Data,
-              },
+              type: "image",
+              image: buffer,
+              mimeType: "application/pdf",
             },
-            { text: prompt },
+            { type: "text", text: prompt },
           ],
         },
       ],
