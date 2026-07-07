@@ -7,18 +7,34 @@ const geminiEmbeddingModel = google.embedding("gemini-embedding-2");
 const openaiEmbeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
 
+const geminiEmbeddingOptions = {
+  google: { outputDimensionality: 768 },
+};
+
 async function createEmbedding(values, options = {}) {
   try {
-    return await embedMany({ model: geminiEmbeddingModel, values, ...options });
-  } catch {
+    return await embedMany({
+      model: geminiEmbeddingModel,
+      values,
+      providerOptions: geminiEmbeddingOptions,
+      ...options,
+    });
+  } catch (error) {
+    console.error("Gemini embedding failed, falling back to OpenAI:", error.message);
     return await embedMany({ model: openaiEmbeddingModel, values, ...options });
   }
 }
 
 async function createSingleEmbedding(value, options = {}) {
   try {
-    return await embed({ model: geminiEmbeddingModel, value, ...options });
-  } catch {
+    return await embed({
+      model: geminiEmbeddingModel,
+      value,
+      providerOptions: geminiEmbeddingOptions,
+      ...options,
+    });
+  } catch (error) {
+    console.error("Gemini embedding failed, falling back to OpenAI:", error.message);
     return await embed({ model: openaiEmbeddingModel, value, ...options });
   }
 }
