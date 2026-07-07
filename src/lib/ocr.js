@@ -9,7 +9,7 @@ async function extractWithGemini(buffer) {
     const prompt = `Extract all text from this PDF document. Return only the extracted text without any additional commentary or formatting. If the document contains tables, preserve their structure. If the document has multiple pages, extract text from all pages in order.`;
 
     const response = await genai.models.generateContent({
-      model: "gemini-3.0-flash",
+      model: "gemini-3-flash-preview",
       contents: [
         {
           parts: [
