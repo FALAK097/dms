@@ -1,6 +1,6 @@
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import { google } from "@/lib/ai/google";
 import { getEncoding } from "js-tiktoken";
 
 const geminiEmbeddingModel = google.embedding("gemini-embedding-2");

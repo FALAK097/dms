@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import { google } from "@/lib/ai/google";
 import { generateText } from "ai";
 
 export async function POST(request, { params }) {

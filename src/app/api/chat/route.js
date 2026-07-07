@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { findRelevantContent } from "@/lib/cloudflare/vectorize";
 import { openai } from "@ai-sdk/openai";
-import { google } from "@ai-sdk/google";
+import { google } from "@/lib/ai/google";
 import { streamText, tool, isStepCount } from "ai";
 import { z } from "zod";
 
