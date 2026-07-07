@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthModalProvider } from "@/components/auth/auth-modal-provider";
 import Script from "next/script";
 
 const geistSans = Geist({
@@ -57,7 +58,9 @@ export default async function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <NuqsAdapter>{children}</NuqsAdapter>
+          <NuqsAdapter>
+            <AuthModalProvider>{children}</AuthModalProvider>
+          </NuqsAdapter>
           <Toaster />
         </ThemeProvider>
         <Script

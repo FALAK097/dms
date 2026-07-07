@@ -4,8 +4,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
+import { useSession } from "@/lib/auth-client";
+import { useAuthModal } from "@/components/auth/auth-modal-provider";
 
 export function Hero() {
+  const { data: session, isPending } = useSession();
+  const { openAuthModal } = useAuthModal();
   return (
     <section className="relative overflow-hidden pt-32 pb-16 md:pt-40 md:pb-24">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -55,12 +59,19 @@ export function Hero() {
             transition={{ duration: 0.5, delay: 0.4 }}
             className="flex flex-col gap-3 sm:flex-row sm:justify-center"
           >
-            <Button size="lg" asChild className="gap-2">
-              <Link href="/sign-up">
+            {!isPending && session ? (
+              <Button size="lg" asChild className="gap-2">
+                <Link href="/dashboard">
+                  Go to Dashboard
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button size="lg" onClick={openAuthModal} className="gap-2 cursor-pointer">
                 Try for Free
                 <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            )}
             <Button size="lg" variant="outline" asChild>
               <Link href="#features">Learn More</Link>
             </Button>
