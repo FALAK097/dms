@@ -27,7 +27,9 @@ export function MessageBubble({ message, isStreaming = false }) {
   const renderMessageContent = () => {
     if (!message.parts || message.parts.length === 0) {
       return (
-        <p className="whitespace-pre-wrap m-0">{message.content || ""}</p>
+        <Streamdown animated={isStreaming && !isUser}>
+          {message.content || ""}
+        </Streamdown>
       );
     }
 
@@ -174,10 +176,9 @@ export function MessageBubble({ message, isStreaming = false }) {
       >
         <div className="max-w-none break-words">
           {hasTextContent && (
-            <Streamdown
-              content={textParts}
-              animated={isStreaming && !isUser}
-            />
+            <Streamdown animated={isStreaming && !isUser}>
+              {textParts}
+            </Streamdown>
           )}
           {renderMessageContent()}
           {isStreaming && !isUser && !hasTextContent && (
