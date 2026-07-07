@@ -65,14 +65,14 @@
 
 - [X] Split extracted text into chunks (~500–1000 tokens)
 - [X] Generate embeddings using custom Openai embedding models
-- [X] Store chunks and embeddings in Upstash Vector DB
+- [X] Store chunks and embeddings in Cloudflare Vectorize
 - [X] Add vector deletion when user deletes a document
 - [X] Mark `Document.embeddingsDone = true` after embeddings are stored
 
 ## Chat Functionality
 
 - [X] Implement sending messages to Vercel AI SDK (GPT-4o-mini)
-- [X] Initial Vercel AI SDK, Upstash Vector chat setup
+- [X] Initial Vercel AI SDK, Cloudflare Vectorize chat setup
 - [X] Load all chats for the current user in sidebar (`Chat` table)
 - [X] Save all messages in `Message` table (`USER` / `ASSISTANT`)
 - [X] Store all conversations and add `zustand` for state management
@@ -82,7 +82,7 @@
 - [X] Add conversation history for better context & responses
 - [X] Make sure documents & chat, vector search are user specific
 - [ ] Improve the source linking
-- [ ] Add Upstash Redis for caching recent searches
+- [ ] Add Cloudflare KV for caching recent searches
 - [ ] Avoid vector search for generic questions
 - [ ] Improve Prompt for better response
 
@@ -133,15 +133,15 @@
 - [X] Create a DB in Neon
 - [X] Deploy to vercel under subdomain
 - [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
-- [X] Integrate QStash to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
+- [X] Integrate Cloudflare Queues to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
 - [X] Encrypt file URLs or restrict via signed URLs from DO Spaces
 - [X] Add IndexedDB to queue documents upload along with redis rate limit allowing users to refresh page and upload resumes in background once window is available
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
-- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, upstash costs)
+- [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, Cloudflare costs)
 - [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
 - [ ] Add OTP Verification
 - [ ] Add google login option with Last Used
 - [ ] Create a landing page
-- [ ] Add Upstash Search for dashboard search
+- [ ] Add Cloudflare-backed dashboard search
 - [ ] Add pagination & chunking optimizations
 - [ ] Ability to add comments & collaborate with team members

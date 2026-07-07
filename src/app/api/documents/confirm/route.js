@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyObjectExists } from "@/lib/storage";
-import { publishOCRProcessingJob } from "@/lib/upstash/qstash";
+import { publishOCRProcessingJob } from "@/lib/cloudflare/jobs";
 
 export async function POST(request) {
   try {
@@ -106,7 +106,7 @@ export async function POST(request) {
 
         if (isDevelopment || isLocalhost) {
           console.log(
-            `[DEV] Skipping QStash for document ${document.id} - processing directly`
+            `[DEV] Skipping Cloudflare Queue for document ${document.id} - processing directly`
           );
 
           await prisma.document.update({
@@ -116,16 +116,16 @@ export async function POST(request) {
             },
           });
         } else {
-          const qstashResult = await publishOCRProcessingJob(
+          const queueResult = await publishOCRProcessingJob(
             document.id,
             session.user.id
           );
 
-          if (qstashResult.success) {
+          if (queueResult.success) {
             await prisma.document.update({
               where: { id: document.id },
               data: {
-                qstashMessageId: qstashResult.messageId,
+                backgroundJobId: queueResult.jobId,
                 status: "PROCESSING",
                 processingStartedAt: new Date(),
               },

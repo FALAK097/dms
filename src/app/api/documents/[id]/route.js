@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { deleteFromSpaces } from "@/lib/storage";
-import { vectorIndex } from "@/lib/upstash/vector";
+import { deleteEmbeddings } from "@/lib/cloudflare/vectorize";
 
 export async function GET(request, { params }) {
   try {
@@ -73,11 +73,7 @@ export async function DELETE(request, { params }) {
 
     if (document.embeddingsDone && document.chunkCount > 0) {
       try {
-        const vectorIds = Array.from(
-          { length: document.chunkCount },
-          (_, i) => `${id}-${i}`
-        );
-        await vectorIndex.delete(vectorIds);
+        await deleteEmbeddings(id, document.chunkCount);
       } catch (vectorError) {
         console.error("Failed to delete vectors:", vectorError);
       }

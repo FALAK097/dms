@@ -1,32 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { extractTextFromPDF } from "@/lib/ocr";
-import { upsertEmbeddings } from "@/lib/upstash/vector";
+import { upsertEmbeddings } from "@/lib/cloudflare/vectorize";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { verifyQStashSignature } from "@/lib/upstash/qstash";
+import { verifyInternalJobRequest } from "@/lib/cloudflare/jobs";
 import { generatePresignedDownloadUrl } from "@/lib/storage";
 
 export async function POST(request) {
   let documentId;
-  let isQStashRequest = false;
+  let isInternalJobRequest = false;
 
   try {
     const headersList = await headers();
-    const qstashSignature = headersList.get("upstash-signature");
+    const internalJobSecret = headersList.get("x-internal-job-secret");
 
     let body;
-    if (qstashSignature) {
-      isQStashRequest = true;
-      const verification = await verifyQStashSignature(request);
-      if (!verification.valid) {
-        console.error("Invalid QStash signature");
+    if (internalJobSecret) {
+      isInternalJobRequest = true;
+      if (!verifyInternalJobRequest(request)) {
+        console.error("Invalid internal job signature");
         return NextResponse.json(
           { error: "Invalid signature" },
           { status: 401 }
         );
       }
-      body = verification.body;
+      body = await request.json();
     } else {
       const session = await auth.api.getSession({
         headers: headersList,
@@ -58,7 +57,7 @@ export async function POST(request) {
       );
     }
 
-    if (!isQStashRequest) {
+    if (!isInternalJobRequest) {
       const session = await auth.api.getSession({
         headers: await headers(),
       });

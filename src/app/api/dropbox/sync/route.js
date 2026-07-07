@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { publishBatchFileProcessingJobs } from "@/lib/upstash/qstash";
+import { publishBatchFileProcessingJobs } from "@/lib/cloudflare/jobs";
 
 export async function POST(request) {
   try {

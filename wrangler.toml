@@ -1,0 +1,28 @@
+name = "dms-jobs"
+main = "cloudflare/workers/dms-jobs/worker.js"
+compatibility_date = "2026-07-07"
+
+[[queues.producers]]
+queue = "dms-jobs"
+binding = "DMS_JOBS_QUEUE"
+
+[[queues.consumers]]
+queue = "dms-jobs"
+max_batch_size = 10
+max_batch_timeout = 5
+max_retries = 3
+
+[[kv_namespaces]]
+binding = "DMS_KV"
+id = "replace-with-cloudflare-kv-namespace-id"
+
+[[vectorize]]
+binding = "DMS_VECTORIZE"
+index_name = "dms-documents"
+
+# Optional future binding if document processing becomes a multi-step
+# Cloudflare Workflow instead of the current queue-to-Next route dispatch.
+# [[workflows]]
+# binding = "DMS_DOCUMENT_WORKFLOW"
+# name = "dms-document-workflow"
+# class_name = "DocumentWorkflow"
