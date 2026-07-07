@@ -8,9 +8,61 @@ function json(data, init = {}) {
   });
 }
 
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, PUT, HEAD, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers":
+      "authorization, content-type, x-internal-job-secret",
+    "Access-Control-Expose-Headers": "content-length, content-type, etag",
+  };
+}
+
 function isAuthorized(request, env) {
   const authorization = request.headers.get("authorization") || "";
   return authorization === `Bearer ${env.QUEUE_WORKER_SECRET}`;
+}
+
+async function isSignedR2Request(request, env) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get("key");
+  const expires = url.searchParams.get("expires");
+  const signature = url.searchParams.get("signature");
+  const method = url.searchParams.get("method") || request.method;
+
+  if (!key || !expires || !signature) {
+    return false;
+  }
+
+  const signingSecret = env.INTERNAL_JOB_SECRET || env.QUEUE_WORKER_SECRET;
+
+  if (!signingSecret) {
+    return false;
+  }
+
+  if (Number(expires) < Math.floor(Date.now() / 1000)) {
+    return false;
+  }
+
+  const secretKey = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(signingSecret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const signatureBuffer = await crypto.subtle.sign(
+    "HMAC",
+    secretKey,
+    new TextEncoder().encode(`${method}:${key}:${expires}`)
+  );
+
+  const expected = Array.from(new Uint8Array(signatureBuffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  return signature === expected;
 }
 
 async function parseJson(request) {
@@ -113,6 +165,94 @@ async function handleKv(request, env, operation) {
   }
 }
 
+async function handleR2(request, env, operation) {
+  const url = new URL(request.url);
+  const key = url.searchParams.get("key");
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders(),
+    });
+  }
+
+  if (!key) {
+    return json({ error: "R2 key is required" }, { status: 400, headers: corsHeaders() });
+  }
+
+  const internalRequest = isAuthorized(request, env);
+  const signedRequest = await isSignedR2Request(request, env);
+
+  if (!internalRequest && !signedRequest) {
+    return json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders() });
+  }
+
+  switch (operation) {
+    case "object": {
+      if (request.method === "PUT") {
+        const body = await request.arrayBuffer();
+        const object = await env.DMS_BUCKET.put(key, body, {
+          httpMetadata: {
+            contentType:
+              request.headers.get("content-type") ||
+              "application/octet-stream",
+          },
+        });
+        return json(
+          { success: true, key: object.key, size: object.size },
+          { headers: corsHeaders() }
+        );
+      }
+
+      if (request.method === "GET") {
+        const object = await env.DMS_BUCKET.get(key);
+        if (!object) {
+          return new Response("Not found", {
+            status: 404,
+            headers: corsHeaders(),
+          });
+        }
+
+        const headers = new Headers();
+        object.writeHttpMetadata(headers);
+        headers.set("etag", object.httpEtag);
+        Object.entries(corsHeaders()).forEach(([name, value]) =>
+          headers.set(name, value)
+        );
+        return new Response(object.body, { headers });
+      }
+
+      if (request.method === "HEAD") {
+        const object = await env.DMS_BUCKET.head(key);
+        if (!object) {
+          return new Response(null, { status: 404, headers: corsHeaders() });
+        }
+
+        const headers = new Headers();
+        object.writeHttpMetadata(headers);
+        headers.set("etag", object.httpEtag);
+        headers.set("content-length", String(object.size));
+        Object.entries(corsHeaders()).forEach(([name, value]) =>
+          headers.set(name, value)
+        );
+        return new Response(null, { status: 200, headers });
+      }
+
+      if (request.method === "DELETE") {
+        await env.DMS_BUCKET.delete(key);
+        return json({ success: true }, { headers: corsHeaders() });
+      }
+
+      return json({ error: "Method not allowed" }, {
+        status: 405,
+        headers: corsHeaders(),
+      });
+    }
+    default:
+      return json({ error: "Not found" }, { status: 404, headers: corsHeaders() });
+  }
+}
+
 async function dispatchJob(job, env) {
   const target = targetForJob(job);
 
@@ -155,6 +295,10 @@ const worker = {
 
     if (url.pathname === "/health") {
       return json({ ok: true });
+    }
+
+    if (url.pathname === "/r2/object") {
+      return handleR2(request, env, "object");
     }
 
     if (!isAuthorized(request, env)) {

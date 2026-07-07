@@ -21,6 +21,10 @@ id = "da382fa8cbee4be9a5d2fe6447d396b9"
 binding = "DMS_VECTORIZE"
 index_name = "dms-documents"
 
+[[r2_buckets]]
+binding = "DMS_BUCKET"
+bucket_name = "dms-uploads"
+
 # Optional future binding if document processing becomes a multi-step
 # Cloudflare Workflow instead of the current queue-to-Next route dispatch.
 # [[workflows]]

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { uploadToSpaces, generateDocumentKey } from "@/lib/storage";
+import { uploadToR2, generateDocumentKey } from "@/lib/storage";
 import {
   publishOCRProcessingJob,
   verifyInternalJobRequest,
@@ -84,7 +84,7 @@ export async function POST(request) {
       type: "application/pdf",
     };
 
-    const url = await uploadToSpaces(file, key);
+    const url = await uploadToR2(file, key);
 
     const document = await prisma.document.create({
       data: {

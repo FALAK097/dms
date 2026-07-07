@@ -20,7 +20,7 @@ export const GeneralTab = () => {
   const storageProviders = [
     {
       value: "do",
-      label: "DigitalOcean Spaces",
+      label: "Cloudflare R2",
       description: "S3-compatible object storage with predictable pricing",
       logo: (
         <svg

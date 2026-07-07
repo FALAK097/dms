@@ -14,13 +14,13 @@
 
 ## Learnings
 
-### Vercel DO Spaces Pre-Signed Urls for allowing larger file uploads
+### Vercel Cloudflare R2 Pre-Signed Urls for allowing larger file uploads
 
-1. Vercel on free tier allows a max of 4.5mb file upload in a request body, so even though DO Spaces can handle large file uploads it was failing.
+1. Vercel on free tier allows a max of 4.5mb file upload in a request body, so even though Cloudflare R2 can handle large file uploads it was failing.
 
     - 1.1. Client → Vercel API with file in body
 
-    - 1.2. Vercel API → DO Spaces upload
+    - 1.2. Vercel API → Cloudflare R2 upload
 
     - 1.3. Vercel API → Database save
 
@@ -33,7 +33,7 @@
       └─ Request: { fileName, fileType, fileSize }
       └─ Response: { presignedUrl, key, publicUrl }
 
-    - 3.2. Client → PUT file directly to DO Spaces using presignedUrl
+    - 3.2. Client → PUT file directly to Cloudflare R2 using presignedUrl
       └─ File NEVER touches Vercel servers
       └─ Uses AWS signed authentication
 
@@ -46,7 +46,7 @@
 ## Dashboard / Document Management
 
 - [X] Implement file uploads from dashboard
-- [X] Store uploaded files in DigitalOcean Spaces (S3 compatible)
+- [X] Store uploaded files in Cloudflare R2 (S3 compatible)
 - [X] Save document metadata in Postgres (`Document` table)
 - [X] Show upload progress and skeleton loading UI
 - [X] Display the uploaded documents
@@ -92,7 +92,7 @@
 - [X] Add support of @ tag in chat to know about particular document
 - [X] Implement streaming response
 - [X] Detail document page, where document can be viewed & change the sources link in chat
-- [X] Add presigned urls for direct DO Spaces upload for large document uploads
+- [X] Add presigned urls for direct Cloudflare R2 upload for large document uploads
 - [X] Prevent duplicate document uploads (through content hashing SHA256)
 - [X] Add "Sync Now" button in settings
 - [X] Once new document are added to Dropbox get them through a webhook and process it (Maybe batch or single)
@@ -134,11 +134,11 @@
 - [X] Deploy to vercel under subdomain
 - [X] Create a logo, favicon, seo metadate, opengrapgh image, robots.txt
 - [X] Integrate Cloudflare Queues to queue background OCR/embedding jobs as on Vercel function can run for max 5 mins so large no. of documents will not work
-- [X] Encrypt file URLs or restrict via signed URLs from DO Spaces
+- [X] Encrypt file URLs or restrict via signed URLs from Cloudflare R2
 - [X] Add IndexedDB to queue documents upload along with redis rate limit allowing users to refresh page and upload resumes in background once window is available
 - [ ] Make use of <https://docs.clamav.net/manual/Usage/Scanning.html> for scanning documents for viruses, malware
 - [ ] Create a separate usage page that shows all stats (openai models, gemini ocr, Cloudflare costs)
-- [ ] Add Uploadthing Vercel Blob storage & DO Spaces both options for document storing
+- [ ] Add Uploadthing Vercel Blob storage & Cloudflare R2 both options for document storing
 - [ ] Add OTP Verification
 - [ ] Add google login option with Last Used
 - [ ] Create a landing page

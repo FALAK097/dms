@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { deleteFromSpaces } from "@/lib/storage";
+import { deleteFromR2 } from "@/lib/storage";
 import { deleteEmbeddings } from "@/lib/cloudflare/vectorize";
 
 export async function GET(request, { params }) {
@@ -69,7 +69,7 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await deleteFromSpaces(document.key);
+    await deleteFromR2(document.key);
 
     if (document.embeddingsDone && document.chunkCount > 0) {
       try {

@@ -48,6 +48,7 @@ Required app environment variables are listed in `.env.example`. The queue Worke
 Production setup:
 
 ```bash
+wrangler r2 bucket create dms-uploads --location=enam
 wrangler queues create dms-jobs
 wrangler kv namespace create DMS_KV
 wrangler vectorize create dms-documents --dimensions=1536 --metric=cosine

@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import {
   generateDocumentKey,
   generatePresignedUploadUrl,
-  getCdnUrl,
 } from "@/lib/storage";
 import { prisma } from "@/lib/db";
 
@@ -71,7 +70,7 @@ export async function POST(request) {
     return NextResponse.json({
       presignedUrl,
       key,
-      publicUrl: getCdnUrl(key),
+      publicUrl: key,
       fileName,
       fileType,
       fileSize,

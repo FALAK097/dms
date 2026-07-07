@@ -27,7 +27,7 @@ const faqs = [
   {
     question: "Is my data secure?",
     answer:
-      "Yes! We use enterprise-grade security with encrypted storage, signed URLs, and secure authentication. Your documents are stored in DigitalOcean Spaces with industry-standard encryption.",
+      "Yes! We use enterprise-grade security with encrypted storage, signed URLs, and secure authentication. Your documents are stored in Cloudflare R2 with industry-standard encryption.",
   },
   {
     question: "Can I sync documents from cloud storage?",

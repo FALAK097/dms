@@ -1,34 +1,80 @@
-import {
-  S3Client,
-  PutObjectCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { randomUUID } from "crypto";
+import { randomUUID, createHmac } from "crypto";
 
-export const s3Client = new S3Client({
-  endpoint: process.env.DO_SPACES_ENDPOINT_URL,
-  region: process.env.DO_SPACES_REGION,
-  credentials: {
-    accessKeyId: process.env.DO_SPACES_ACCESS_KEY,
-    secretAccessKey: process.env.DO_SPACES_SECRET_KEY,
-  },
-  forcePathStyle: false,
-});
+const WORKER_URL = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
+const WORKER_SECRET = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
+const R2_SIGNING_SECRET =
+  process.env.INTERNAL_JOB_SECRET || process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
 
-export async function uploadToSpaces(file, key) {
-  const buffer = Buffer.from(await file.arrayBuffer());
+function getWorkerUrl() {
+  if (!WORKER_URL) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
+  }
 
-  const params = {
-    Bucket: process.env.DO_SPACES_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: file.type,
-  };
+  return WORKER_URL;
+}
 
-  await s3Client.send(new PutObjectCommand(params));
+function getWorkerSecret() {
+  if (!WORKER_SECRET) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
+  }
+
+  return WORKER_SECRET;
+}
+
+function getSigningSecret() {
+  if (!R2_SIGNING_SECRET) {
+    throw new Error("R2 signing secret is not configured");
+  }
+
+  return R2_SIGNING_SECRET;
+}
+
+function signR2Request(method, key, expiresAt) {
+  const payload = `${method}:${key}:${expiresAt}`;
+  return createHmac("sha256", getSigningSecret()).update(payload).digest("hex");
+}
+
+function buildR2Url(method, key, expiresIn) {
+  const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+  const signature = signR2Request(method, key, expiresAt);
+  const url = new URL("/r2/object", getWorkerUrl());
+  url.searchParams.set("key", key);
+  url.searchParams.set("expires", String(expiresAt));
+  url.searchParams.set("signature", signature);
+  url.searchParams.set("method", method);
+  return url.toString();
+}
+
+async function r2Request(method, key, body = null, extraHeaders = {}) {
+  const url = new URL("/r2/object", getWorkerUrl());
+  url.searchParams.set("key", key);
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${getWorkerSecret()}`,
+      ...extraHeaders,
+    },
+    body,
+  });
+
+  return response;
+}
+
+export async function uploadToR2(file, key) {
+  const response = await r2Request(
+    "PUT",
+    key,
+    file.arrayBuffer ? Buffer.from(await file.arrayBuffer()) : file,
+    {
+      "Content-Type": file.type || "application/octet-stream",
+    }
+  );
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to upload to R2: ${details}`);
+  }
 
   return key;
 }
@@ -45,62 +91,40 @@ export async function generatePresignedUploadUrl(
   contentType,
   expiresIn = 300
 ) {
-  const command = new PutObjectCommand({
-    Bucket: process.env.DO_SPACES_NAME,
-    Key: key,
-    ContentType: contentType,
-  });
-
-  const presignedUrl = await getSignedUrl(s3Client, command, {
-    expiresIn,
-  });
-
-  return presignedUrl;
+  const url = new URL(buildR2Url("PUT", key, expiresIn));
+  url.searchParams.set("contentType", contentType);
+  return url.toString();
 }
 
 export async function generatePresignedDownloadUrl(key, expiresIn = 300) {
-  const command = new GetObjectCommand({
-    Bucket: process.env.DO_SPACES_NAME,
-    Key: key,
-  });
-
-  const presignedUrl = await getSignedUrl(s3Client, command, {
-    expiresIn,
-  });
-
-  return presignedUrl;
+  return buildR2Url("GET", key, expiresIn);
 }
 
 export async function verifyObjectExists(key) {
-  try {
-    const command = new HeadObjectCommand({
-      Bucket: process.env.DO_SPACES_NAME,
-      Key: key,
-    });
+  const response = await r2Request("HEAD", key);
 
-    const result = await s3Client.send(command);
-    return {
-      exists: true,
-      size: result.ContentLength,
-      contentType: result.ContentType,
-    };
-  } catch (error) {
-    if (error.name === "NotFound" || error.$metadata?.httpStatusCode === 404) {
-      return { exists: false };
-    }
-    throw error;
+  if (response.status === 404) {
+    return { exists: false };
   }
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to verify R2 object: ${details}`);
+  }
+
+  return {
+    exists: true,
+    size: Number(response.headers.get("content-length") || 0),
+    contentType:
+      response.headers.get("content-type") || "application/octet-stream",
+  };
 }
 
-export async function deleteFromSpaces(key) {
-  const command = new DeleteObjectCommand({
-    Bucket: process.env.DO_SPACES_NAME,
-    Key: key,
-  });
+export async function deleteFromR2(key) {
+  const response = await r2Request("DELETE", key);
 
-  await s3Client.send(command);
-}
-
-export function getCdnUrl(key) {
-  return key;
+  if (!response.ok && response.status !== 404) {
+    const details = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to delete from R2: ${details}`);
+  }
 }

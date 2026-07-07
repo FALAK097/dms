@@ -36,10 +36,9 @@ export async function POST(request) {
     const failedFiles = [];
 
     for (const fileData of files) {
-      const { key, publicUrl, fileName, fileType, fileSize, contentHash } =
-        fileData;
+      const { key, fileName, fileType, fileSize, contentHash } = fileData;
 
-      if (!key || !publicUrl || !fileName) {
+      if (!key || !fileName) {
         console.error("Invalid file data:", fileData);
         failedFiles.push({ fileName, reason: "Missing required fields" });
         continue;
