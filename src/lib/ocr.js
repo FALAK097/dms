@@ -14,9 +14,9 @@ async function extractWithGemini(buffer) {
           role: "user",
           content: [
             {
-              type: "image",
-              image: buffer,
-              mimeType: "application/pdf",
+              type: "file",
+              data: buffer,
+              mediaType: "application/pdf",
             },
             { type: "text", text: prompt },
           ],

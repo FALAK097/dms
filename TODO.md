@@ -6,7 +6,9 @@
 - Conversation context window: `20` previous messages
 - Chat model: Google `gemini-3-flash-preview` (fallback: OpenAI `gpt-4o-mini`)
 - OCR model: Google `gemini-3-flash-preview`
-- Embedding model: Google `text-embedding-004` (fallback: OpenAI `text-embedding-3-small`)
+- Embedding model: Google `gemini-embedding-2` (fallback: OpenAI `text-embedding-3-small`)
+- AI SDK: Vercel AI SDK v7 (`ai`, `@ai-sdk/google`, `@ai-sdk/openai`, `@ai-sdk/react`)
+- Markdown rendering: Streamdown
 - Tokenizer: OpenAI tiktoken `cl100k_base`
 - Max chunk tokens: `800`
 - Available tools: `total_documents`, `find_document_by_name`

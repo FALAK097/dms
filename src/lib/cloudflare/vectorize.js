@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { getEncoding } from "js-tiktoken";
 
-const geminiEmbeddingModel = google.embedding("text-embedding-004");
+const geminiEmbeddingModel = google.embedding("gemini-embedding-2");
 const openaiEmbeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
 

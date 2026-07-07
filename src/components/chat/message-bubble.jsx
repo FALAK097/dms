@@ -2,6 +2,7 @@
 
 import { Bot, User } from "lucide-react";
 import Link from "next/link";
+import { Streamdown } from "streamdown";
 import { cn } from "@/lib/utils";
 
 export function MessageBubble({ message, isStreaming = false }) {
@@ -16,19 +17,24 @@ export function MessageBubble({ message, isStreaming = false }) {
       part.state === "output-available"
   );
 
+  const textParts = (message.parts || [])
+    .filter((part) => part.type === "text")
+    .map((part) => part.text)
+    .join("");
+
+  const hasTextContent = textParts.length > 0;
+
   const renderMessageContent = () => {
     if (!message.parts || message.parts.length === 0) {
-      return <p className="whitespace-pre-wrap m-0">{message.content || ""}</p>;
+      return (
+        <p className="whitespace-pre-wrap m-0">{message.content || ""}</p>
+      );
     }
 
     return message.parts.map((part, index) => {
       switch (part.type) {
         case "text":
-          return (
-            <p key={`text-${index}`} className="whitespace-pre-wrap m-0">
-              {part.text}
-            </p>
-          );
+          return null;
 
         case "tool-total_documents": {
           const callId = part.toolCallId;
@@ -167,8 +173,14 @@ export function MessageBubble({ message, isStreaming = false }) {
         )}
       >
         <div className="max-w-none break-words">
+          {hasTextContent && (
+            <Streamdown
+              content={textParts}
+              animated={isStreaming && !isUser}
+            />
+          )}
           {renderMessageContent()}
-          {isStreaming && !isUser && (
+          {isStreaming && !isUser && !hasTextContent && (
             <span className="inline-flex items-center gap-1 ml-1">
               <span
                 className="inline-block w-2 h-2 bg-current rounded-full animate-pulse"

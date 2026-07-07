@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { findRelevantContent } from "@/lib/cloudflare/vectorize";
 import { openai } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
-import { streamText, tool } from "ai";
+import { streamText, tool, isStepCount } from "ai";
 import { z } from "zod";
 
 function loadPrompts() {
@@ -281,7 +281,7 @@ export async function POST(request) {
           },
         }),
       },
-      maxSteps: 5,
+      stopWhen: isStepCount(5),
       prompt: prompt,
       onFinish: async ({ response }) => {
         try {
