@@ -43,7 +43,7 @@ This app uses Cloudflare services for background jobs, vector search, and KV-bac
 - Cloudflare Vectorize stores OpenAI `text-embedding-3-small` document chunks. Create the index with 1536 dimensions and cosine distance.
 - Cloudflare KV backs server-side rate limit/audit helpers.
 
-Required app environment variables are listed in `.env.example`. The queue Worker lives in `cloudflare/workers/dms-jobs/worker.js` and is configured by `wrangler.toml`. The app talks to Cloudflare through authenticated Worker endpoints, so Vercel does not need a Cloudflare account API token.
+Required app environment variables are listed in `.env.example`. The queue Worker lives in `workers/dms-jobs/worker.js` and is configured by `wrangler.toml`. The app talks to Cloudflare through authenticated Worker endpoints, so Vercel does not need a Cloudflare account API token.
 
 Production setup:
 

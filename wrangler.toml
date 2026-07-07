@@ -1,5 +1,5 @@
 name = "dms-jobs"
-main = "cloudflare/workers/dms-jobs/worker.js"
+main = "workers/dms-jobs/worker.js"
 compatibility_date = "2026-07-07"
 
 [[queues.producers]]
