@@ -5,29 +5,24 @@ import { getEncoding } from "js-tiktoken";
 const embeddingModel = openai.embedding("text-embedding-3-small");
 const tokenEncoder = getEncoding("cl100k_base");
 
-function cloudflareApiBase() {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const indexName = process.env.CLOUDFLARE_VECTORIZE_INDEX;
+function cloudflareWorkerUrl() {
+  const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
 
-  if (!accountId) {
-    throw new Error("CLOUDFLARE_ACCOUNT_ID is not configured");
+  if (!workerUrl) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
   }
 
-  if (!indexName) {
-    throw new Error("CLOUDFLARE_VECTORIZE_INDEX is not configured");
-  }
-
-  return `https://api.cloudflare.com/client/v4/accounts/${accountId}/vectorize/v2/indexes/${indexName}`;
+  return workerUrl;
 }
 
 async function vectorizeRequest(path, body) {
-  const token = process.env.CLOUDFLARE_API_TOKEN;
+  const token = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
 
   if (!token) {
-    throw new Error("CLOUDFLARE_API_TOKEN is not configured");
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
   }
 
-  const response = await fetch(`${cloudflareApiBase()}${path}`, {
+  const response = await fetch(new URL(`/vectorize${path}`, cloudflareWorkerUrl()), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -39,9 +34,7 @@ async function vectorizeRequest(path, body) {
   const data = await response.json().catch(() => null);
 
   if (!response.ok || data?.success === false) {
-    const details =
-      data?.errors?.map((error) => error.message).join("; ") ||
-      response.statusText;
+    const details = data?.error || response.statusText;
     throw new Error(`Cloudflare Vectorize request failed: ${details}`);
   }
 

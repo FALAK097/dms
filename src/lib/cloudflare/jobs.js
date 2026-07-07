@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 const WORKER_URL = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
 const WORKER_SECRET = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
 const INTERNAL_JOB_SECRET = process.env.INTERNAL_JOB_SECRET;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export function verifyInternalJobRequest(request) {
   const configuredSecret = INTERNAL_JOB_SECRET || WORKER_SECRET;
@@ -25,6 +26,10 @@ async function publishJob(type, payload) {
     throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
   }
 
+  if (!APP_URL) {
+    throw new Error("NEXT_PUBLIC_APP_URL is not configured");
+  }
+
   const jobId = randomUUID();
   const response = await fetch(new URL("/enqueue", WORKER_URL), {
     method: "POST",
@@ -32,7 +37,7 @@ async function publishJob(type, payload) {
       Authorization: `Bearer ${WORKER_SECRET}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ jobId, type, payload }),
+    body: JSON.stringify({ jobId, type, appUrl: APP_URL, payload }),
   });
 
   if (!response.ok) {

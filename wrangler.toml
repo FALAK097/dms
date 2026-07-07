@@ -11,10 +11,11 @@ queue = "dms-jobs"
 max_batch_size = 10
 max_batch_timeout = 5
 max_retries = 3
+dead_letter_queue = "dms-jobs-dlq"
 
 [[kv_namespaces]]
 binding = "DMS_KV"
-id = "replace-with-cloudflare-kv-namespace-id"
+id = "da382fa8cbee4be9a5d2fe6447d396b9"
 
 [[vectorize]]
 binding = "DMS_VECTORIZE"

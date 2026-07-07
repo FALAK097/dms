@@ -1,68 +1,52 @@
-function kvApiBase() {
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
-  const namespaceId = process.env.CLOUDFLARE_KV_NAMESPACE_ID;
+function cloudflareWorkerUrl() {
+  const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
 
-  if (!accountId) {
-    throw new Error("CLOUDFLARE_ACCOUNT_ID is not configured");
+  if (!workerUrl) {
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
   }
 
-  if (!namespaceId) {
-    throw new Error("CLOUDFLARE_KV_NAMESPACE_ID is not configured");
-  }
-
-  return `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces/${namespaceId}`;
+  return workerUrl;
 }
 
-async function kvRequest(path, options = {}) {
-  const token = process.env.CLOUDFLARE_API_TOKEN;
+async function kvRequest(operation, body) {
+  const token = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
 
   if (!token) {
-    throw new Error("CLOUDFLARE_API_TOKEN is not configured");
+    throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
   }
 
-  const response = await fetch(`${kvApiBase()}${path}`, {
-    ...options,
+  const response = await fetch(new URL(`/kv/${operation}`, cloudflareWorkerUrl()), {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      ...(options.headers || {}),
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify(body),
   });
 
-  if (response.status === 404) {
-    return null;
-  }
+  const data = await response.json().catch(() => null);
 
-  if (!response.ok) {
-    const details = await response.text().catch(() => response.statusText);
+  if (!response.ok || data?.success === false) {
+    const details = data?.error || response.statusText;
     throw new Error(`Cloudflare KV request failed: ${details}`);
   }
 
-  return response;
+  return data;
 }
 
 async function getJson(key) {
-  const response = await kvRequest(`/values/${encodeURIComponent(key)}`);
-  if (!response) return null;
-
-  const text = await response.text();
+  const result = await kvRequest("get", { key });
+  const text = result?.value;
   if (!text) return null;
 
   return JSON.parse(text);
 }
 
 async function putJson(key, value, ttlSeconds) {
-  const params = new URLSearchParams();
-  if (ttlSeconds) {
-    params.set("expiration_ttl", String(ttlSeconds));
-  }
-
-  const suffix = params.toString() ? `?${params}` : "";
-  await kvRequest(`/values/${encodeURIComponent(key)}${suffix}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(value),
+  await kvRequest("put", {
+    key,
+    value: JSON.stringify(value),
+    expirationTtl: ttlSeconds,
   });
 }
 
