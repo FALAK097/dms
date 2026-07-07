@@ -148,7 +148,8 @@ export async function POST(request) {
         // Handle unique constraint violation for contentHash
         if (
           dbError.code === "P2002" &&
-          dbError.meta?.target?.includes("unique_content_hash_per_user")
+          (dbError.meta?.target?.includes("unique_content_hash_per_user") ||
+            dbError.meta?.target?.includes("contentHash"))
         ) {
           console.log(
             `Unique constraint violation: Document with same content hash already exists for ${fileName}`
