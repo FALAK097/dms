@@ -35,27 +35,3 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
-## Cloudflare Runtime Services
-
-This app uses Cloudflare services for background jobs, vector search, and KV-backed helpers:
-
-- Cloudflare Queues dispatch Dropbox file processing and document OCR/embedding jobs.
-- Cloudflare Vectorize stores OpenAI `text-embedding-3-small` document chunks. Create the index with 1536 dimensions and cosine distance.
-- Cloudflare KV backs server-side rate limit/audit helpers.
-
-Required app environment variables are listed in `.env.example`. The queue Worker lives in `workers/dms-jobs/worker.js` and is configured by `wrangler.toml`. The app talks to Cloudflare through authenticated Worker endpoints, so Vercel does not need a Cloudflare account API token.
-
-Production setup:
-
-```bash
-wrangler r2 bucket create dms-uploads --location=enam
-wrangler queues create dms-jobs
-wrangler kv namespace create DMS_KV
-wrangler vectorize create dms-documents --dimensions=1536 --metric=cosine
-wrangler vectorize create-metadata-index dms-documents --property-name=resourceId --type=string
-wrangler secret put QUEUE_WORKER_SECRET
-wrangler secret put INTERNAL_JOB_SECRET
-wrangler deploy
-```
-
-Use the deployed Worker URL as `CLOUDFLARE_QUEUE_WORKER_URL` in the Next app. Set `CLOUDFLARE_QUEUE_WORKER_SECRET` to the same value as the Worker `QUEUE_WORKER_SECRET`, set `INTERNAL_JOB_SECRET` in both the Worker and app to the same independent secret, and make sure `NEXT_PUBLIC_APP_URL` points at the deployed app URL.

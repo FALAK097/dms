@@ -18,25 +18,6 @@ export function DocumentMentionDropdown({
   const selectedItemRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      loadDocuments();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery]);
-
-  useEffect(() => {
-    if (selectedItemRef.current && scrollContainerRef.current) {
-      selectedItemRef.current.scrollIntoView({
-        block: "nearest",
-        behavior: "smooth",
-      });
-    }
-  }, [selectedIndex]);
-
   const loadDocuments = async () => {
     setLoading(true);
     try {
@@ -90,10 +71,29 @@ export function DocumentMentionDropdown({
 
   useEffect(() => {
     if (isOpen) {
+      loadDocuments();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (selectedItemRef.current && scrollContainerRef.current) {
+      selectedItemRef.current.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    }
+  }, [selectedIndex]);
+
+  useEffect(() => {
+    if (isOpen) {
       window.addEventListener("keydown", handleKeyDown);
       return () => window.removeEventListener("keydown", handleKeyDown);
     }
-  }, [isOpen, selectedIndex, filteredDocuments]);
+  }, [isOpen, handleKeyDown]);
 
   if (!isOpen) return null;
 

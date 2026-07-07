@@ -25,7 +25,7 @@ export function MessageBubble({ message, isStreaming = false }) {
       switch (part.type) {
         case "text":
           return (
-            <p key={index} className="whitespace-pre-wrap m-0">
+            <p key={`text-${index}`} className="whitespace-pre-wrap m-0">
               {part.text}
             </p>
           );

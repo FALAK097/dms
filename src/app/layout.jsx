@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "@/components/ui/sonner";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,12 +60,13 @@ export default async function RootLayout({ children }) {
           <NuqsAdapter>{children}</NuqsAdapter>
           <Toaster />
         </ThemeProvider>
-        <script
+        <Script
           type="text/javascript"
           src="https://www.dropbox.com/static/api/2/dropins.js"
           id="dropboxjs"
           data-app-key={process.env.DROPBOX_CLIENT_ID}
-        ></script>
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
