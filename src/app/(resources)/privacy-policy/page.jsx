@@ -152,10 +152,10 @@ export default function PrivacyPolicyPage() {
             </p>
             <p className="mb-2">
               <a
-                href="mailto:falakgala09@gmail.com"
+                href="mailto:hi@falakgala.dev"
                 className="text-primary hover:underline"
               >
-                falakgala09@gmail.com
+                hi@falakgala.dev
               </a>
             </p>
             <p>
