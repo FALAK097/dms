@@ -24,8 +24,7 @@ export function Footer() {
               <span className="text-xl">DMS</span>
             </Link>
             <p className="mb-4 max-w-sm text-sm text-muted-foreground">
-              AI-powered document management made simple. Upload, organize, and
-              chat with your documents effortlessly.
+              Keep your files together and find the right detail, with every answer close to its source.
             </p>
             <div className="flex gap-4">
               <Link
@@ -55,7 +54,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li>
                 <Link
-                  href="#features"
+                  href="#how-it-works"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Features

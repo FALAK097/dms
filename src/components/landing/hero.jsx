@@ -2,90 +2,88 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
-import { motion } from "motion/react";
+import { ArrowRight, FileText, Search, Sparkles } from "lucide-react";
 import { useSession } from "@/lib/auth-client";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
+
+const documents = [
+  { title: "Policy handbook.pdf", detail: "24 pages", selected: true },
+  { title: "Operations guide.pdf", detail: "18 pages" },
+  { title: "Quarterly review.pdf", detail: "32 pages" },
+];
+
+function WorkspacePreview() {
+  return (
+    <div className="landing-preview" aria-label="Preview of the DMS document workspace">
+      <div className="landing-preview-toolbar">
+        <div className="flex items-center gap-2" aria-hidden="true">
+          <span className="landing-window-dot" />
+          <span className="landing-window-dot" />
+          <span className="landing-window-dot" />
+        </div>
+        <span className="landing-preview-title">Your workspace</span>
+        <span className="landing-preview-live"><span />Workspace preview</span>
+      </div>
+      <div className="landing-preview-layout">
+        <aside className="landing-preview-files" aria-label="Sample document list">
+          <div className="landing-preview-section">DOCUMENTS <span>03</span></div>
+          <div className="landing-preview-search"><Search className="size-3.5" /><span>Find a document</span><kbd>⌘ K</kbd></div>
+          <div className="landing-preview-file-list">
+            {documents.map((document) => (
+              <div className={`landing-preview-file ${document.selected ? "is-selected" : ""}`} key={document.title}>
+                <FileText className="size-4 shrink-0" />
+                <span className="min-w-0"><strong>{document.title}</strong><small>{document.detail}</small></span>
+              </div>
+            ))}
+          </div>
+          <div className="landing-preview-storage"><span>Your library</span><span>3 sample PDFs</span></div>
+        </aside>
+        <section className="landing-preview-document" aria-label="Sample document preview">
+          <div className="landing-preview-document-heading"><div><FileText className="size-4" /><strong>Policy handbook.pdf</strong></div><span>Page 4 of 24</span></div>
+          <div className="landing-paper">
+            <span className="landing-paper-kicker">EMPLOYEE HANDBOOK</span>
+            <strong className="landing-paper-heading">Terms &amp; conditions</strong>
+            <span className="landing-paper-line w-4/5" /><span className="landing-paper-line" /><span className="landing-paper-line w-11/12" />
+            <strong className="landing-paper-subheading">Renewal and notice</strong>
+            <span className="landing-paper-line" /><span className="landing-paper-line w-11/12" />
+            <span className="landing-paper-highlight">Either party may end this agreement with 30 days’ written notice before renewal.</span>
+            <span className="landing-paper-line" /><span className="landing-paper-line w-4/5" />
+            <span className="landing-paper-line w-11/12" /><span className="landing-paper-line w-3/5" />
+            <span className="landing-paper-page">04</span>
+          </div>
+        </section>
+        <section className="landing-preview-assistant" aria-label="Sample document answer">
+          <div className="landing-assistant-heading"><div><Sparkles className="size-4" /><strong>Ask your documents</strong></div><span>NEW CHAT</span></div>
+          <div className="landing-chat-question">What does the renewal clause require?</div>
+          <div className="landing-chat-answer"><span>From your documents</span><p>The agreement renews for one year unless either party gives 30 days’ written notice before renewal.</p><div className="landing-citation"><FileText className="size-3.5" /><span>Policy handbook.pdf</span><span>Page 4</span></div></div>
+          <div className="landing-chat-input"><span>Ask a follow-up…</span><span className="landing-chat-send"><ArrowRight className="size-3.5" /></span></div>
+        </section>
+      </div>
+    </div>
+  );
+}
 
 export function Hero() {
   const { data: session, isPending } = useSession();
   const { openAuthModal } = useAuthModal();
+
   return (
-    <section className="relative overflow-hidden pt-32 pb-16 md:pt-40 md:pb-24">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mx-auto max-w-4xl text-center"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-8 inline-flex"
-          >
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-4 py-1.5 text-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span>AI-Powered Document Intelligence</span>
-            </div>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
-          >
-            Your documents,{" "}
-            <span className="bg-linear-to-r from-primary to-chart-2 bg-clip-text text-transparent">
-              organized and intelligent
-            </span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mb-8 text-lg text-muted-foreground sm:text-xl"
-          >
-            Upload, search, and chat with your documents using AI. Automatic
-            OCR, smart search, and seamless cloud sync—all in one place.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="flex flex-col gap-3 sm:flex-row sm:justify-center"
-          >
+    <section className="landing-hero">
+      <div className="landing-container">
+        <div className="landing-hero-copy">
+          <p className="landing-eyebrow"><span />DOCUMENTS, IN CONTEXT</p>
+          <h1>Every document.<br /><span>One clear answer.</span></h1>
+          <p className="landing-hero-description">Keep your files together, find the detail you need, and ask questions with answers grounded in your documents.</p>
+          <div className="landing-hero-actions">
             {!isPending && session ? (
-              <Button size="lg" asChild className="gap-2">
-                <Link href="/dashboard">
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
+              <Button size="lg" asChild className="landing-cta"><Link href="/dashboard">Open your workspace<ArrowRight className="size-4" /></Link></Button>
             ) : (
-              <Button size="lg" onClick={openAuthModal} className="gap-2 cursor-pointer">
-                Try for Free
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+              <Button size="lg" onClick={openAuthModal} className="landing-cta cursor-pointer">Get started<ArrowRight className="size-4" /></Button>
             )}
-            <Button size="lg" variant="outline" asChild>
-              <Link href="#features">Learn More</Link>
-            </Button>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-8 text-sm text-muted-foreground"
-          >
-            No credit card required • Free forever plan
-          </motion.p>
-        </motion.div>
+            <Link className="landing-secondary-link" href="#how-it-works">See how it works</Link>
+          </div>
+        </div>
+        <WorkspacePreview />
       </div>
     </section>
   );

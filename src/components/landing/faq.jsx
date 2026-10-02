@@ -10,51 +10,23 @@ import { motion } from "motion/react";
 
 const faqs = [
   {
-    question: "How does AI chat with documents work?",
-    answer:
-      "Our AI uses advanced natural language processing to understand your documents. When you ask a question, it searches through your documents using semantic search, finds relevant information, and provides accurate answers with source citations.",
+    question: "Which documents can I add?",
+    answer: "DMS currently supports PDF uploads. You can also bring PDF files in from a connected Dropbox folder.",
   },
   {
-    question: "What file formats do you support?",
-    answer:
-      "Currently, we support PDF files with automatic OCR. Support for Word documents, Excel spreadsheets, and other formats is coming soon.",
+    question: "Can I connect cloud storage?",
+    answer: "Dropbox folder sync is available. Google Drive integration is still in development.",
   },
   {
-    question: "How long does document processing take?",
-    answer:
-      "Most documents are processed within 2-3 minutes. Large documents may take up to 5 minutes. We use background processing with Cloudflare Queues to ensure your documents are ready quickly without blocking your workflow.",
-  },
-  {
-    question: "Is my data secure?",
-    answer:
-      "Yes! We use enterprise-grade security with encrypted storage, signed URLs, and secure authentication. Your documents are stored in Cloudflare R2 with industry-standard encryption.",
-  },
-  {
-    question: "Can I sync documents from cloud storage?",
-    answer:
-      "Yes! We support automatic syncing with Dropbox, and Google Drive integration is coming soon. Your documents are automatically processed and ready to chat whenever they're added to your synced folders.",
-  },
-  {
-    question: "What happens if document processing fails?",
-    answer:
-      "Our system automatically retries failed documents up to 3 times. If processing still fails, you'll receive a notification with details. You can manually retry processing from your dashboard.",
-  },
-  {
-    question: "Do you offer team collaboration features?",
-    answer:
-      "Team collaboration features are currently in development. You'll soon be able to share documents, add comments, and manage team permissions.",
-  },
-  {
-    question: "Is there a free plan?",
-    answer:
-      "Yes! We offer a free forever plan with generous limits. Perfect for individuals and small teams getting started with document management.",
+    question: "Can I ask questions about my files?",
+    answer: "Yes. Ask questions in chat and follow the answer back to its cited document.",
   },
 ];
 
 export function FAQ() {
   return (
-    <section className="py-16 md:py-24">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <section className="landing-faq py-14 md:py-20">
+      <div className="landing-container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -62,12 +34,13 @@ export function FAQ() {
           transition={{ duration: 0.5 }}
           className="mx-auto max-w-3xl"
         >
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              Frequently Asked Questions
+          <div className="mb-8">
+            <p className="landing-eyebrow"><span />GOOD TO KNOW</p>
+            <h2 className="mb-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+              A few details.
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Everything you need to know about DMS
+            <p className="text-base text-muted-foreground">
+              What DMS supports today.
             </p>
           </div>
 
@@ -78,7 +51,7 @@ export function FAQ() {
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
+                transition={{ duration: 0.2, delay: index * 0.025 }}
               >
                 <AccordionItem value={`item-${index}`}>
                   <AccordionTrigger className="text-left">

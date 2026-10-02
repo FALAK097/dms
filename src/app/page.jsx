@@ -6,14 +6,14 @@ import { Hero } from "@/components/landing/hero";
 import { Navbar } from "@/components/landing/navbar";
 
 export const metadata = {
-  title: "DMS - AI-Powered Document Management",
+  title: "DMS | Documents, in context",
   description:
-    "Upload, organize, and chat with your documents using AI. Automatic OCR, smart search, and seamless cloud sync—all in one place.",
+    "Organize PDF documents, connect Dropbox, and ask questions with answers linked to their sources.",
 };
 
 export default function Home() {
   return (
-    <div className="min-h-screen">
+    <div className="landing-page min-h-screen">
       <Navbar />
       <main>
         <Hero />
