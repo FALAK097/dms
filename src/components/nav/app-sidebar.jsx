@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { LayoutDashboard, Settings } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -42,6 +43,15 @@ const data = {
 };
 
 export function AppSidebar({ children, ...props }) {
+  const pathname = usePathname();
+  const currentPage = pathname.startsWith("/settings")
+    ? "Settings"
+    : pathname.startsWith("/chat")
+      ? "Chat"
+      : pathname.startsWith("/dashboard/document")
+        ? "Document"
+        : "My Documents";
+
   return (
     <>
       <Sidebar collapsible="icon" {...props}>
@@ -68,7 +78,7 @@ export function AppSidebar({ children, ...props }) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                    <BreadcrumbPage>{currentPage}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

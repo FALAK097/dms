@@ -96,7 +96,7 @@ export function ChatInput({
       return;
     }
 
-    if (e.key === "Enter" && e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       e.currentTarget.form?.requestSubmit();
     }
@@ -137,16 +137,16 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={
             disabled
-              ? "Waiting for response..."
+              ? "Answer is streaming…"
               : selectedDocument
-              ? `Ask about ${selectedDocument.name}... (Shift+Enter to send, @ to change)`
-              : "Type your message... (Shift+Enter to send, @ to select)"
+              ? `Ask about ${selectedDocument.name}…`
+              : "Ask a question about your documents…"
           }
           disabled={disabled}
           rows={1}
           className={cn(
-            "min-h-11 max-h-[200px] resize-none flex-1",
-            "focus-visible:ring-1 text-sm sm:text-base"
+            "min-h-12 max-h-[200px] resize-none flex-1 rounded-xl bg-muted/30 text-sm sm:text-base",
+            "focus-visible:ring-1"
           )}
           aria-label="Chat message"
         />
@@ -158,14 +158,14 @@ export function ChatInput({
                   type="submit"
                   disabled={!value?.trim() || disabled}
                   size="icon"
-                  className="h-11 w-11 shrink-0"
+                  className="h-12 w-12 shrink-0 rounded-xl"
                   aria-label="Send message"
                 >
                   <Send className="h-5 w-5" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
-                <p>Shift + Enter to send</p>
+                <p>Enter to send</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -178,6 +178,9 @@ export function ChatInput({
           searchQuery={searchQuery}
         />
       </div>
+      <p className="px-1 text-[11px] leading-4 text-muted-foreground">
+        Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line <span aria-hidden="true">·</span> @ to choose a PDF
+      </p>
     </div>
   );
 }

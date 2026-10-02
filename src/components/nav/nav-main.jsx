@@ -42,7 +42,8 @@ export function NavMain({ items }) {
       </SidebarGroupLabel>
       <SidebarMenu className="mt-4">
         {items.map((item) => {
-          const isActive = pathname === item.url;
+          const isActive =
+            pathname === item.url || pathname.startsWith(`${item.url}/`);
 
           return (
             <Collapsible

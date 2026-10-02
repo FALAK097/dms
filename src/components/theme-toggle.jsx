@@ -12,7 +12,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
 export const ThemeToggle = ({ compact = false }) => {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const { state } = useSidebar();
 
@@ -22,7 +22,7 @@ export const ThemeToggle = ({ compact = false }) => {
 
   if (!mounted) return null;
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
   const Icon = isDark ? Sun : Moon;
   const label = isDark ? "Light Mode" : "Dark Mode";
 
@@ -33,6 +33,7 @@ export const ThemeToggle = ({ compact = false }) => {
         size="icon"
         className="h-8 w-8"
         onClick={() => setTheme(isDark ? "light" : "dark")}
+        aria-label={label}
       >
         <Icon className="h-4 w-4" />
         <span className="sr-only">{label}</span>
@@ -44,9 +45,11 @@ export const ThemeToggle = ({ compact = false }) => {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="text-sidebar-foreground hover:text-sidebar-accent-foreground w-full flex items-center justify-center gap-2 text-sm py-3 border-t group-data-[state=collapsed]:border-0 group-data-[state=collapsed]:justify-start group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:py-2"
+      aria-label={label}
+      className="flex w-full items-center justify-start gap-2 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]/sidebar-wrapper:justify-center"
     >
       <Icon size={18} />
+      <span className="group-data-[collapsible=icon]/sidebar-wrapper:sr-only">{label}</span>
     </button>
   );
 
