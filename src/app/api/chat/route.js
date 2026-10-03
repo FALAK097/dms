@@ -33,11 +33,11 @@ function buildRAGPrompt(
       conversationContext += `${role}: ${msg.content}\n`;
     });
     conversationContext +=
-      "\nREMINDER: Continue responding in PLAIN TEXT only. NO markdown formatting (no **, ##, *, etc.).\n";
+      "\nContinue with concise, readable Markdown where it helps (short headings, bullets, and bold emphasis). Avoid large walls of text.\n";
   }
 
   if (contextChunks.length === 0) {
-    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nRespond directly in concise Markdown when it improves readability.\n\nAnswer:`;
   }
 
   const validChunks = contextChunks.filter(
@@ -49,7 +49,7 @@ function buildRAGPrompt(
   );
 
   if (validChunks.length === 0) {
-    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nAnswer:`;
+    return `${prompts.no_context_response}${conversationContext}\n\nUser Question: ${userMessage}\n\nRespond directly in concise Markdown when it improves readability.\n\nAnswer:`;
   }
 
   const chunksText = validChunks
@@ -67,7 +67,7 @@ function buildRAGPrompt(
     .replace("{documentName}", docName)
     .replace("{chunks}", chunksText);
 
-  return `${prompts.system.global_chat}\n\n${contextSection}${conversationContext}\n\nUser Question: ${userMessage}\n\nIMPORTANT: Provide your answer in PLAIN TEXT format only. Do NOT use ** for bold, ## for headings, or any markdown syntax.\n\nAnswer:`;
+  return `${prompts.system.global_chat}\n\n${contextSection}${conversationContext}\n\nUser Question: ${userMessage}\n\nWrite a direct, well-structured answer using concise Markdown when useful. Use short paragraphs and lists for steps or multiple findings. Cite only information supported by the provided document context.\n\nAnswer:`;
 }
 
 export async function POST(request) {
@@ -207,21 +207,26 @@ export async function POST(request) {
       tools: {
         total_documents: tool({
           description:
-            "Returns the complete list of ALL documents without any filtering. Use ONLY when user asks for COMPLETE, UNFILTERED list like: 'how many documents do I have', 'list all my documents', 'show all my documents'. NEVER use for questions with ANY filtering: 'documents from 2022' (NO - has year filter), 'any docs for 2023' (NO - has year filter), 'documents from last month' (NO - has time filter), 'recent documents' (NO - has recency filter). For ANY filtered query, answer from context chunks instead - DO NOT call this tool.",
+            "Returns the total count and up to 8 most recently uploaded documents. Use ONLY when the user asks for an unfiltered count/list such as 'how many documents do I have' or 'show my documents'; tell them the total and direct them to the library for the full collection. NEVER use for questions with filters (year, date, type, recency); use relevant context chunks instead.",
           inputSchema: z.object({}),
           execute: async () => {
-            const documents = await prisma.document.findMany({
-              where: { userId: session.user.id },
-              select: {
-                id: true,
-                name: true,
-                createdAt: true,
-              },
-              orderBy: { createdAt: "desc" },
-            });
+            const where = { userId: session.user.id };
+            const [totalCount, documents] = await Promise.all([
+              prisma.document.count({ where }),
+              prisma.document.findMany({
+                where,
+                select: {
+                  id: true,
+                  name: true,
+                  createdAt: true,
+                },
+                orderBy: { createdAt: "desc" },
+                take: 8,
+              }),
+            ]);
 
             const result = {
-              totalCount: documents.length,
+              totalCount,
               documents: documents.map((doc) => ({
                 id: doc.id,
                 name: doc.name,
@@ -234,31 +239,36 @@ export async function POST(request) {
         }),
         find_document_by_name: tool({
           description:
-            "Searches for a document by name when the user mentions a specific document but no context was found. Use this when the user asks about a document by name (e.g., 'tell me about CASA CELESTE', 'what is the EHL Contract') but no relevant chunks were retrieved. Returns the document details if found.",
+            "Searches for up to 8 documents by name when the user mentions a specific document but no context was found. Use this when a named document question has no relevant retrieved chunks. The result includes the total match count; ask the user to refine the name or use @ to select a specific document when there are multiple matches.",
           inputSchema: z.object({
             documentName: z
               .string()
               .describe("The document name or partial name to search for"),
           }),
           execute: async ({ documentName }) => {
-            const documents = await prisma.document.findMany({
-              where: {
-                userId: session.user.id,
-                name: {
-                  contains: documentName,
-                  mode: "insensitive",
+            const where = {
+              userId: session.user.id,
+              name: {
+                contains: documentName,
+                mode: "insensitive",
+              },
+            };
+            const [totalCount, documents] = await Promise.all([
+              prisma.document.count({ where }),
+              prisma.document.findMany({
+                where,
+                select: {
+                  id: true,
+                  name: true,
+                  status: true,
+                  createdAt: true,
                 },
-              },
-              select: {
-                id: true,
-                name: true,
-                status: true,
-                createdAt: true,
-              },
-              orderBy: { createdAt: "desc" },
-            });
+                orderBy: { createdAt: "desc" },
+                take: 8,
+              }),
+            ]);
 
-            if (documents.length === 0) {
+            if (totalCount === 0) {
               return {
                 found: false,
                 message: `No document found matching "${documentName}". Please check the document name or use @ to mention a specific document.`,
@@ -267,6 +277,7 @@ export async function POST(request) {
 
             return {
               found: true,
+              totalCount,
               documents: documents.map((doc) => ({
                 id: doc.id,
                 name: doc.name,
@@ -274,9 +285,9 @@ export async function POST(request) {
                 uploadedAt: doc.createdAt.toISOString(),
               })),
               message:
-                documents.length === 1
+                totalCount === 1
                   ? `Found the document "${documents[0].name}". To ask questions about this document, please use @ to mention it in your message, or try rephrasing your question.`
-                  : `Found ${documents.length} documents matching "${documentName}". Please use @ to select and mention the specific document you want to ask about.`,
+                  : `Found ${totalCount} documents matching "${documentName}". Showing up to ${documents.length}; please use @ to select and mention the specific document you want to ask about.`,
             };
           },
         }),
@@ -312,7 +323,7 @@ export async function POST(request) {
                     toolResults.push(
                       `You have ${output.totalCount} document${
                         output.totalCount !== 1 ? "s" : ""
-                      }: ${docs}`
+                      }. Recent documents: ${docs}${output.totalCount > (output.documents?.length || 0) ? `, and ${output.totalCount - (output.documents?.length || 0)} more in your library.` : "."}`
                     );
                   }
                 }
