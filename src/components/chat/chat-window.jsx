@@ -1,39 +1,48 @@
 "use client";
 
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageBubble } from "@/components/chat/message-bubble";
+import { ChatMessageList } from "@/components/chat/chat-message-list";
+import { ChatFeedback } from "@/components/chat/chat-feedback";
 import { ChatInput } from "@/components/chat/chat-input";
 import { conversationAPI } from "@/lib/api";
-import {
-  AlertCircle,
-  ArrowUpRight,
-  Loader2,
-  MessageSquareText,
-  RotateCcw,
-  Square,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowDown } from "lucide-react";
+import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { useChatStore } from "@/stores/chat-store";
 
-const suggestedQuestions = [
-  "Summarize a document",
-  "Find a date or deadline",
-  "What should I know?",
-];
+function formatConversationMessages(conversation) {
+  return conversation.messages.map((message) => {
+    const sources = message.sources
+      ? typeof message.sources === "string"
+        ? JSON.parse(message.sources)
+        : message.sources
+      : undefined;
+
+    return {
+      id: message.id,
+      role: message.role.toLowerCase(),
+      parts: [{ type: "text", text: message.content }],
+      metadata: sources ? { sources } : undefined,
+    };
+  });
+}
 
 export function ChatWindow() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const conversationIdFromUrl = searchParams.get("conversationId");
   const scrollRef = useRef(null);
+  const shouldFollowRef = useRef(true);
   const [input, setInput] = useState("");
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [loadedConversationId, setLoadedConversationId] = useState(null);
+  const [historyRetry, setHistoryRetry] = useState(0);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showScrollToLatest, setShowScrollToLatest] = useState(false);
+  const [historyFailureKey, setHistoryFailureKey] = useState(null);
 
   const {
     currentConversationId,
@@ -42,6 +51,9 @@ export function ChatWindow() {
   } = useChatStore();
 
   const activeConversationId = conversationIdFromUrl || currentConversationId;
+  const historyRequestKey = `${activeConversationId || ""}:${historyRetry}`;
+  const historyError = Boolean(activeConversationId && historyFailureKey === historyRequestKey);
+  const loadingHistory = Boolean(activeConversationId && loadedConversationId !== activeConversationId && !historyError);
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
     []
@@ -85,12 +97,8 @@ export function ChatWindow() {
       conversationIdFromUrl !== currentConversationId
     ) {
       setCurrentConversation(conversationIdFromUrl);
-      setHistoryLoaded(false);
     } else if (!conversationIdFromUrl && currentConversationId) {
       clearCurrentConversation();
-      setHistoryLoaded(false);
-    } else if (!conversationIdFromUrl && !currentConversationId) {
-      setHistoryLoaded(false);
     }
   }, [
     conversationIdFromUrl,
@@ -100,53 +108,35 @@ export function ChatWindow() {
   ]);
 
   useEffect(() => {
-    const loadConversation = async () => {
-      if (!activeConversationId) {
-        setMessages([]);
-        setHistoryLoaded(true);
-        setLoadingHistory(false);
-        return;
-      }
+    let ignore = false;
+    if (!activeConversationId) {
+      // The URL/store identifies the conversation; clearing the chat hook's
+      // state here prevents a previous conversation flashing in a new chat.
+      setMessages([]);
+      return () => {
+        ignore = true;
+      };
+    }
 
-      if (historyLoaded) {
-        return;
-      }
-
-      setLoadingHistory(true);
-      try {
-        const { conversation } = await conversationAPI.getById(
-          activeConversationId
-        );
-
-        const formattedMessages = conversation.messages.map((msg) => {
-          let sources;
-          if (msg.sources) {
-            sources =
-              typeof msg.sources === "string"
-                ? JSON.parse(msg.sources)
-                : msg.sources;
-          }
-
-          return {
-            id: msg.id,
-            role: msg.role.toLowerCase(),
-            parts: [{ type: "text", text: msg.content }],
-            metadata: sources ? { sources } : undefined,
-          };
-        });
-
-        setMessages(formattedMessages);
-        setHistoryLoaded(true);
-      } catch (error) {
+    conversationAPI
+      .getById(activeConversationId)
+      .then(({ conversation }) => {
+        if (ignore) return;
+        setMessages(formatConversationMessages(conversation));
+        setLoadedConversationId(activeConversationId);
+      })
+      .catch((error) => {
+        if (ignore) return;
         console.error("Error loading conversation:", error);
+        // Never leave a different conversation visible after this one fails.
         setMessages([]);
-      } finally {
-        setLoadingHistory(false);
-      }
-    };
+        setHistoryFailureKey(historyRequestKey);
+      });
 
-    loadConversation();
-  }, [activeConversationId, historyLoaded, setMessages]);
+    return () => {
+      ignore = true;
+    };
+  }, [activeConversationId, historyRequestKey, setMessages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -157,6 +147,7 @@ export function ChatWindow() {
 
     const userMessage = input.trim();
     setInput("");
+    shouldFollowRef.current = true;
 
     await sendMessage(
       { text: userMessage },
@@ -177,24 +168,58 @@ export function ChatWindow() {
     setInput(e.target.value);
   };
 
-  const scrollToBottom = () => {
+  const getScrollViewport = useCallback(() => {
     if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+      return scrollRef.current.querySelector('[data-slot="scroll-area-viewport"]');
     }
-  };
+    return null;
+  }, []);
+
+  const scrollToLatest = useCallback((behavior = "smooth") => {
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+    shouldFollowRef.current = true;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+    setShowScrollToLatest(false);
+  }, [getScrollViewport]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    const updateScrollState = () => {
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      shouldFollowRef.current = distanceFromBottom <= 96;
+      setShowScrollToLatest(distanceFromBottom > 96);
+    };
+
+    viewport.addEventListener("scroll", updateScrollState, { passive: true });
+    updateScrollState();
+    return () => viewport.removeEventListener("scroll", updateScrollState);
+  }, [getScrollViewport]);
+
+  useEffect(() => {
+    const viewport = getScrollViewport();
+    const content = viewport?.firstElementChild;
+    if (!viewport || !content || typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (shouldFollowRef.current) {
+        viewport.scrollTop = viewport.scrollHeight;
+      } else {
+        const distanceFromBottom =
+          viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+        setShowScrollToLatest(distanceFromBottom > 96);
+      }
+    });
+    resizeObserver.observe(content);
+    return () => resizeObserver.disconnect();
+  }, [getScrollViewport]);
 
   if (loadingHistory) {
     return (
-      <div className="flex h-[calc(100svh-7rem)] min-h-[420px] items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground">
+      <div className="flex h-[calc(100dvh-5.5rem)] min-h-[280px] items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground sm:min-h-[420px]">
         <Loader2 className="mr-2 size-4 animate-spin text-primary" />
         Loading conversation…
       </div>
@@ -202,97 +227,45 @@ export function ChatWindow() {
   }
 
   return (
-    <div className="flex h-[calc(100svh-7rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
-      <ScrollArea ref={scrollRef} className="min-h-0 flex-1 px-4">
-        <div className="mx-auto flex min-h-full max-w-3xl flex-col space-y-4 py-6">
-          {messages.length === 0 && (
-            <div className="flex flex-1 flex-col items-center justify-center px-2 py-10 text-center">
-              <div className="mb-5 flex size-12 items-center justify-center rounded-2xl border bg-muted/60 text-primary">
-                <MessageSquareText className="size-5" />
-              </div>
-              <h2 className="text-xl font-semibold tracking-tight">
-                What would you like to find?
-              </h2>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
-                Ask a question about your PDFs. Answers include links back to
-                their sources.
-              </p>
-              <div className="mt-6 flex flex-wrap justify-center gap-2">
-                {suggestedQuestions.map((question) => (
-                  <button
-                    key={question}
-                    type="button"
-                    onClick={() => setInput(question)}
-                    className="group inline-flex min-h-9 items-center gap-2 rounded-full border bg-background px-3.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {question}
-                    <ArrowUpRight className="size-3.5 opacity-60 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isStreaming={
-                isStreaming && message.id === messages[messages.length - 1]?.id
-              }
-            />
-          ))}
-        </div>
+    <div className="relative flex h-[calc(100dvh-5.5rem)] min-h-[280px] flex-col overflow-hidden rounded-xl border bg-background shadow-sm sm:min-h-[420px]">
+      <ScrollArea ref={scrollRef} className="min-h-0 flex-1 px-3 sm:px-5">
+        <ChatMessageList
+          messages={messages}
+          isStreaming={isStreaming}
+          onSuggest={(question) => {
+            setInput(question);
+            document.querySelector('[aria-label="Chat message"]')?.focus();
+          }}
+        />
       </ScrollArea>
 
-      <div className="border-t bg-background/95 p-3 sm:p-4">
+      {showScrollToLatest && messages.length > 0 && (
+        <BaseChatButton
+          type="button"
+          variant="outline"
+          size="sm"
+          className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 shadow-md backdrop-blur"
+          onClick={() => scrollToLatest("smooth")}
+        >
+          <ArrowDown className="size-3.5" />
+          Latest response
+        </BaseChatButton>
+      )}
+
+      <div className="border-t bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4">
         <div className="mx-auto max-w-3xl">
-          {isStreaming && (
-            <div
-              className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground"
-              aria-live="polite"
-            >
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="size-3.5 animate-spin text-primary" />
-                {status === "submitted"
-                  ? "Finding relevant passages…"
-                  : "Writing an answer…"}
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 px-2 text-xs"
-                onClick={() => stop()}
-              >
-                <Square className="size-3" />
-                Stop
-              </Button>
-            </div>
-          )}
-          {error && (
-            <div
-              role="alert"
-              className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm"
-            >
-              <span className="inline-flex items-center gap-2 text-muted-foreground">
-                <AlertCircle className="size-4 text-destructive" />
-                Your response couldn’t be completed.
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 gap-1.5 px-2"
-                onClick={() => {
-                  clearError();
-                  regenerate();
-                }}
-              >
-                <RotateCcw className="size-3.5" />
-                Try again
-              </Button>
-            </div>
-          )}
+          <ChatFeedback
+            historyError={historyError}
+            onHistoryRetry={() => setHistoryRetry((attempt) => attempt + 1)}
+            isStreaming={isStreaming}
+            status={status}
+            onStop={stop}
+            error={error}
+            onRetry={() => {
+              clearError();
+              regenerate();
+            }}
+          />
           <form onSubmit={handleSubmit}>
             <ChatInput
               value={input}

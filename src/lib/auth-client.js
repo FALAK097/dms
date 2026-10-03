@@ -1,9 +1,6 @@
 import { createAuthClient } from "better-auth/react";
-import { genericOAuthClient } from "better-auth/client/plugins";
 
-export const authClient = createAuthClient({
-  plugins: [genericOAuthClient()],
-});
+export const authClient = createAuthClient();
 
 export const {
   signIn,
@@ -15,8 +12,8 @@ export const {
 } = authClient;
 
 export const linkDropboxAccount = async (callbackURL = "/settings") => {
-  const { data, error } = await authClient.oauth2.link({
-    providerId: "dropbox",
+  const { data, error } = await authClient.linkSocial({
+    provider: "dropbox",
     callbackURL,
   });
   return { data, error };

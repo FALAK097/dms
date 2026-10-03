@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from "react";
 import { Send, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DocumentMentionDropdown } from "./document-mention-dropdown";
@@ -113,7 +113,7 @@ export function ChatInput({
               {selectedDocument.name}
             </span>
           </Badge>
-          <Button
+          <BaseChatButton
             type="button"
             variant="ghost"
             size="icon"
@@ -122,7 +122,7 @@ export function ChatInput({
             aria-label="Remove document context"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </BaseChatButton>
         </div>
       )}
 
@@ -154,7 +154,7 @@ export function ChatInput({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <BaseChatButton
                   type="submit"
                   disabled={!value?.trim() || disabled}
                   size="icon"
@@ -162,7 +162,7 @@ export function ChatInput({
                   aria-label="Send message"
                 >
                   <Send className="h-5 w-5" />
-                </Button>
+                </BaseChatButton>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 <p>Enter to send</p>
@@ -178,8 +178,12 @@ export function ChatInput({
           searchQuery={searchQuery}
         />
       </div>
-      <p className="px-1 text-[11px] leading-4 text-muted-foreground">
-        Enter to send <span aria-hidden="true">·</span> Shift + Enter for a new line <span aria-hidden="true">·</span> @ to choose a PDF
+      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-[11px] leading-4 text-muted-foreground">
+        <span className="whitespace-nowrap">Enter to send</span>
+        <span aria-hidden="true">·</span>
+        <span className="whitespace-nowrap">Shift + Enter for a new line</span>
+        <span aria-hidden="true">·</span>
+        <span className="whitespace-nowrap">@ to choose a PDF</span>
       </p>
     </div>
   );

@@ -34,6 +34,9 @@ export const auth = betterAuth({
           clientSecret: process.env.DROPBOX_CLIENT_SECRET,
           authorizationUrl: "https://www.dropbox.com/oauth2/authorize",
           tokenUrl: "https://api.dropbox.com/oauth2/token",
+          redirectURI: `${
+            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+          }/api/auth/oauth2/callback/:providerId`,
           authorizationUrlParams: {
             token_access_type: "offline",
           },

@@ -293,7 +293,7 @@ export function ConversationList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{conversationToDelete?.title}"?
+              Are you sure you want to delete “{conversationToDelete?.title}”?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
