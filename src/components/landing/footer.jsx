@@ -76,6 +76,14 @@ export function Footer() {
                   Chat
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="#connections"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Connections
+                </Link>
+              </li>
             </ul>
           </div>
 

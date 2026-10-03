@@ -1,8 +1,10 @@
-import { Demo } from "@/components/landing/demo";
 import { FAQ } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
+import { ChatShowcase } from "@/components/landing/chat-showcase";
 import { Footer } from "@/components/landing/footer";
+import { FinalCTA } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
+import { Integrations } from "@/components/landing/integrations";
 import { Navbar } from "@/components/landing/navbar";
 
 export const metadata = {
@@ -17,9 +19,11 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
-        {/* <Demo /> */}
         <Features />
+        <ChatShowcase />
+        <Integrations />
         <FAQ />
+        <FinalCTA />
       </main>
       <Footer />
     </div>
