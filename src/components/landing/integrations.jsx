@@ -18,18 +18,22 @@ function PdfMark({ className }) {
 
 function DropboxMark({ className }) {
   return (
-    <svg className={className} viewBox="0 0 40 36" fill="none" aria-hidden="true">
-      <path d="m10 2 9 6-9 6-9-6 9-6Zm20 0 9 6-9 6-9-6 9-6ZM10 16l9 6-9 6-9-6 9-6Zm20 0 9 6-9 6-9-6 9-6Zm-10 7 9 6-9 6-9-6 9-6Z" fill="currentColor" />
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128" aria-hidden="true">
+      <path fill="#0061FE" d="M0 0h128v128H0z" />
+      <path fill="#F7F5F2" d="M43.7 32 23.404 44.75 43.701 57.5 64 44.75 84.3 57.5 104.598 44.75 84.299 32 64.002 44.75 43.7 32Zm0 51L23.404 70.25 43.701 57.5 64 70.25 43.702 83Zm20.302-12.75L84.299 57.5l20.298 12.75L84.299 83 64.002 70.25Zm0 29.75L43.7 87.25 64 74.5l20.3 12.75L64.002 100Z" />
     </svg>
   );
 }
 
 function DriveMark({ className }) {
   return (
-    <svg className={className} viewBox="0 0 36 32" fill="none" aria-hidden="true">
-      <path d="M12.2 2h7.3l13 22.4h-7.3L12.2 2Z" fill="currentColor" />
-      <path d="M12.2 2h7.3L6.6 24.4H.2L12.2 2Z" fill="currentColor" />
-      <path d="M.2 24.4h24.9l-3.8 6.5H4L.2 24.4Z" fill="currentColor" />
+    <svg className={className} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.3 78" aria-hidden="true">
+      <path fill="#0066da" d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" />
+      <path fill="#00ac47" d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" />
+      <path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.798l5.852 11.5z" />
+      <path fill="#00832d" d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" />
+      <path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" />
+      <path fill="#ffba00" d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" />
     </svg>
   );
 }
