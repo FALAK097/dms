@@ -21,13 +21,18 @@ export function AuthModal({ open, onOpenChange }) {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      await authClient.signIn.social({
+      const { error } = await authClient.signIn.social({
         provider: "google",
         callbackURL: "/dashboard",
       });
+      if (error) {
+        console.error("Google sign-in error:", error);
+        toast.error("Google sign-in is temporarily unavailable. Please try again later.");
+      }
     } catch (err) {
       console.error("Google sign-in error:", err);
       toast.error("Google authentication failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
