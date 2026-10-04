@@ -46,9 +46,6 @@ function PreviewContent({ source }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [mode, setMode] = useState("pdf");
-  const [matched, setMatched] = useState(null);
-  const highlightRef = useRef(null);
 
   useEffect(() => {
     let ignored = false;
@@ -58,13 +55,7 @@ function PreviewContent({ source }) {
     return () => { ignored = true; };
   }, [source.documentId, retry]);
 
-  useEffect(() => {
-    if (mode === "text") highlightRef.current?.scrollIntoView({ block: "center" });
-  }, [mode, data]);
-
-  const text = data?.document.extractedText || "";
   const quote = source.quote || "";
-  const offset = quote ? text.toLowerCase().indexOf(quote.toLowerCase()) : -1;
   return (
     <>
       <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
@@ -72,20 +63,9 @@ function PreviewContent({ source }) {
         {data && <a href={data.downloadUrl} target="_blank" rel="noopener noreferrer" aria-label="Open original document" title="Open original document" className="flex size-9 items-center justify-center rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><HugeiconsIcon icon={ArrowUpRight01Icon} size={16} /></a>}
         <Dialog.Close render={<BaseChatButton variant="ghost" size="icon" className="size-9" aria-label="Close document preview" />}><HugeiconsIcon icon={Cancel01Icon} size={18} /></Dialog.Close>
       </header>
-      <Dialog.Description className="sr-only">Preview the original PDF and its extracted text. Citation text is highlighted when available.</Dialog.Description>
-      {quote && <div className="shrink-0 border-b px-4 py-3"><p className="mb-1 text-xs font-medium text-muted-foreground">Source {source.citation}</p><p className="line-clamp-3 text-sm leading-6">{quote}</p></div>}
+      <Dialog.Description className="sr-only">Preview the original PDF. The cited passage is highlighted on the page.</Dialog.Description>
       {error ? <div role="alert" className="p-4 text-sm">Could not load this document.<BaseChatButton variant="outline" size="sm" className="mt-3" onClick={() => { setError(false); setRetry((n) => n + 1); }}>Try again</BaseChatButton></div> : !data ? <div role="status" className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"><HugeiconsIcon icon={Loading02Icon} size={18} className="animate-spin" />Loading document…</div> : (
-        <>
-          <div className="flex shrink-0 gap-1 border-b p-2" role="group" aria-label="Preview format">
-            {["pdf", "text"].map((value) => <BaseChatButton key={value} variant={mode === value ? "outline" : "ghost"} size="sm" aria-pressed={mode === value} onClick={() => setMode(value)}>{value === "pdf" ? "PDF" : "Extracted text"}</BaseChatButton>)}
-          </div>
-          {mode === "pdf" ? <div className="min-h-0 flex-1"><PDFViewer fileUrl={data.downloadUrl} highlight={quote} onHighlightResult={setMatched} /></div> : (
-            <div className="min-h-0 flex-1 overflow-auto p-4 text-sm leading-7 whitespace-pre-wrap">
-              {offset >= 0 ? <>{text.slice(0, offset)}<mark ref={highlightRef} className="rounded bg-amber-200 px-0.5 text-neutral-950 dark:bg-amber-400">{text.slice(offset, offset + quote.length)}</mark>{text.slice(offset + quote.length)}</> : text || "No extracted text is available for this document."}
-            </div>
-          )}
-          {quote && matched === false && mode === "pdf" && <p role="status" className="border-t p-3 text-xs text-muted-foreground">This passage could not be located in the PDF text layer. <button type="button" className="font-medium underline" onClick={() => setMode("text")}>View extracted text</button>.</p>}
-        </>
+        <div className="min-h-0 flex-1"><PDFViewer key={`${source.documentId}:${quote}`} fileUrl={data.downloadUrl} highlight={quote} initialPage={source.page} /></div>
       )}
     </>
   );

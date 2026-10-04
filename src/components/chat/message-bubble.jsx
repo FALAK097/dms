@@ -1,7 +1,7 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { BotIcon, FileSearchIcon, UserIcon } from "@hugeicons/core-free-icons";
+import { FileSearchIcon } from "@hugeicons/core-free-icons";
 import { useMemo } from "react";
 import { useDocumentPreview } from "./document-preview";
 import { BaseChatButton } from "./base-chat-button";
@@ -179,11 +179,8 @@ function getMessageView(message, isStreaming) {
 
 function AssistantMessage({ view }) {
   return (
-    <article className="flex min-w-0 justify-start gap-2.5 sm:gap-3">
-      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border bg-primary/8 text-primary" aria-hidden="true">
-        <HugeiconsIcon icon={BotIcon} className="size-4" />
-      </div>
-      <div className="w-full min-w-0 max-w-[calc(100%-2.75rem)]">
+    <article className="min-w-0">
+      <div className="w-full min-w-0">
         <div className="min-w-0 break-words text-sm leading-7 sm:text-[15px]">
           <MessageText message={view.message} textParts={view.textParts} isStreaming={view.isStreaming} />
           <ToolResults parts={view.parts} />
@@ -198,12 +195,9 @@ function AssistantMessage({ view }) {
 
 function UserMessage({ view }) {
   return (
-    <article className="flex min-w-0 justify-end gap-2.5 sm:gap-3">
+    <article className="flex min-w-0 justify-end">
       <div className="max-w-[88%] min-w-0 break-words rounded-2xl rounded-br-md bg-muted px-3.5 py-2.5 text-sm leading-7 sm:max-w-[78%] sm:px-4 sm:text-[15px]">
         <MessageText isUser message={view.message} textParts={view.textParts} />
-      </div>
-      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground" aria-hidden="true">
-        <HugeiconsIcon icon={UserIcon} className="size-4" />
       </div>
     </article>
   );
