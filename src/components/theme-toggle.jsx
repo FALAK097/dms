@@ -1,6 +1,7 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MoonIcon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { useTheme } from "next-themes";
 import {
   Tooltip,
@@ -19,7 +20,7 @@ export const ThemeToggle = ({ compact = false }) => {
   if (!mounted) return null;
 
   const isDark = resolvedTheme === "dark";
-  const Icon = isDark ? Sun : Moon;
+  const Icon = isDark ? Sun01Icon : MoonIcon;
   const label = isDark ? "Light Mode" : "Dark Mode";
 
   if (compact) {
@@ -31,7 +32,7 @@ export const ThemeToggle = ({ compact = false }) => {
         onClick={() => setTheme(isDark ? "light" : "dark")}
         aria-label={label}
       >
-        <Icon className="h-4 w-4" />
+        <HugeiconsIcon icon={Icon} className="h-4 w-4" />
         <span className="sr-only">{label}</span>
       </Button>
     );
@@ -44,7 +45,7 @@ export const ThemeToggle = ({ compact = false }) => {
       aria-label={label}
       className="flex w-full items-center justify-start gap-2 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]/sidebar-wrapper:justify-center"
     >
-      <Icon size={18} />
+      <HugeiconsIcon icon={Icon} size={18} />
       <span className="group-data-[collapsible=icon]/sidebar-wrapper:sr-only">{label}</span>
     </button>
   );

@@ -1,6 +1,6 @@
 "use client";
-
-import { AlertCircle, Loader2, RotateCcw, Square } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { AlertCircleIcon, Loading02Icon, RotateLeft01Icon, SquareIcon } from "@hugeicons/core-free-icons";
 import { BaseChatButton } from "@/components/chat/base-chat-button";
 
 export function ChatFeedback({
@@ -23,11 +23,11 @@ export function ChatFeedback({
       {isStreaming && (
         <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-muted-foreground" aria-live="polite">
           <span className="inline-flex items-center gap-2">
-            <Loader2 className="size-3.5 animate-spin text-primary" />
+            <HugeiconsIcon icon={Loading02Icon} className="size-3.5 animate-spin text-primary" />
             {status === "submitted" ? "Finding relevant passages…" : "Writing an answer…"}
           </span>
           <BaseChatButton type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={onStop}>
-            <Square className="size-3" />
+            <HugeiconsIcon icon={SquareIcon} className="size-3" />
             Stop
           </BaseChatButton>
         </div>
@@ -35,11 +35,11 @@ export function ChatFeedback({
       {error && (
         <div role="alert" className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-sm">
           <span className="inline-flex items-center gap-2 text-muted-foreground">
-            <AlertCircle className="size-4 text-destructive" />
+            <HugeiconsIcon icon={AlertCircleIcon} className="size-4 text-destructive" />
             Your response couldn’t be completed.
           </span>
           <BaseChatButton type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2" onClick={onRetry}>
-            <RotateCcw className="size-3.5" />
+            <HugeiconsIcon icon={RotateLeft01Icon} className="size-3.5" />
             Try again
           </BaseChatButton>
         </div>

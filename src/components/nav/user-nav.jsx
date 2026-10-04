@@ -1,9 +1,10 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Logout01Icon } from "@hugeicons/core-free-icons";
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "@/lib/auth-client";
-import { LogOut } from "lucide-react";
 import { ThemeToggle } from "../theme-toggle";
 import {
   DropdownMenu,
@@ -92,7 +93,7 @@ export function UserNav() {
               onClick={handleSignOut}
               className="cursor-pointer"
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={Logout01Icon} className="mr-2 h-4 w-4" />
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -1,16 +1,17 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
 import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DocumentPreviewLayout } from "@/components/chat/document-preview";
 import { ChatMessageList } from "@/components/chat/chat-message-list";
 import { ChatFeedback } from "@/components/chat/chat-feedback";
 import { ChatInput } from "@/components/chat/chat-input";
 import { conversationAPI } from "@/lib/api";
-import { ArrowDown } from "lucide-react";
 import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { useChatStore } from "@/stores/chat-store";
 
@@ -25,16 +26,21 @@ function formatConversationMessages(conversation) {
     return {
       id: message.id,
       role: message.role.toLowerCase(),
-      parts: [{ type: "text", text: message.content }],
-      metadata: sources ? { sources } : undefined,
+      parts: message.parts?.length ? message.parts : [{ type: "text", text: message.content }],
+      metadata: { sources: sources || [], messageId: message.id, feedback: message.feedback },
     };
   });
 }
 
 export function ChatWindow() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const conversationIdFromUrl = searchParams.get("conversationId");
+  const conversationId = searchParams.get("conversationId");
+  const draftVersion = useChatStore((state) => state.draftVersion);
+  return <DocumentPreviewLayout key={conversationId || `draft-${draftVersion}`}><ConversationChat activeConversationId={conversationId} /></DocumentPreviewLayout>;
+}
+
+function ConversationChat({ activeConversationId }) {
+  const router = useRouter();
   const scrollRef = useRef(null);
   const shouldFollowRef = useRef(true);
   const [input, setInput] = useState("");
@@ -44,13 +50,11 @@ export function ChatWindow() {
   const [showScrollToLatest, setShowScrollToLatest] = useState(false);
   const [historyFailureKey, setHistoryFailureKey] = useState(null);
 
-  const {
-    currentConversationId,
-    setCurrentConversation,
-    clearCurrentConversation,
-  } = useChatStore();
-
-  const activeConversationId = conversationIdFromUrl || currentConversationId;
+  const mountedRef = useRef(false);
+  const requestBodyRef = useRef(null);
+  const preparationAttemptRef = useRef(0);
+  const [preparing, setPreparing] = useState(false);
+  const [preparationError, setPreparationError] = useState(null);
   const historyRequestKey = `${activeConversationId || ""}:${historyRetry}`;
   const historyError = Boolean(activeConversationId && historyFailureKey === historyRequestKey);
   const loadingHistory = Boolean(activeConversationId && loadedConversationId !== activeConversationId && !historyError);
@@ -60,10 +64,6 @@ export function ChatWindow() {
   );
 
   const conversationIdRef = useRef(activeConversationId);
-
-  useEffect(() => {
-    conversationIdRef.current = activeConversationId;
-  }, [activeConversationId]);
 
   const {
     messages,
@@ -76,36 +76,23 @@ export function ChatWindow() {
     clearError,
   } = useChat({
     transport,
-    onFinish: async ({ message }) => {
-      if (!conversationIdRef.current && message.metadata?.conversationId) {
-        const newConvId = message.metadata.conversationId;
-        setCurrentConversation(newConvId);
-        router.replace(`/chat?conversationId=${newConvId}`, { scroll: false });
-
-        setTimeout(() => {
-          const { triggerConversationRefresh } = useChatStore.getState();
-          triggerConversationRefresh();
-        }, 2000);
-      }
+    onFinish: ({ message, isAbort, isError }) => {
+      if (!mountedRef.current || isAbort || isError) return;
+      const id = message.metadata?.conversationId || conversationIdRef.current;
+      if (!id) return;
+      useChatStore.getState().triggerConversationRefresh();
+      if (!activeConversationId) router.replace(`/chat?conversationId=${id}`, { scroll: false });
     },
   });
-  const isStreaming = status === "submitted" || status === "streaming";
+  const isStreaming = preparing || status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    if (
-      conversationIdFromUrl &&
-      conversationIdFromUrl !== currentConversationId
-    ) {
-      setCurrentConversation(conversationIdFromUrl);
-    } else if (!conversationIdFromUrl && currentConversationId) {
-      clearCurrentConversation();
-    }
-  }, [
-    conversationIdFromUrl,
-    currentConversationId,
-    setCurrentConversation,
-    clearCurrentConversation,
-  ]);
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stop();
+    };
+  }, [stop]);
 
   useEffect(() => {
     let ignore = false;
@@ -146,18 +133,28 @@ export function ChatWindow() {
     }
 
     const userMessage = input.trim();
-    setInput("");
-    shouldFollowRef.current = true;
-
-    await sendMessage(
-      { text: userMessage },
-      {
-        body: {
-          conversationId: conversationIdRef.current,
-          documentId: selectedDocument?.id || null,
-        },
+    const attempt = ++preparationAttemptRef.current;
+    setPreparing(true);
+    setPreparationError(null);
+    try {
+      if (!conversationIdRef.current) {
+        const { conversation } = await conversationAPI.create();
+        if (!mountedRef.current || preparationAttemptRef.current !== attempt) return;
+        conversationIdRef.current = conversation.id;
       }
-    );
+      const body = {
+        conversationId: conversationIdRef.current,
+        documentId: selectedDocument?.id || null,
+      };
+      requestBodyRef.current = body;
+      setInput("");
+      shouldFollowRef.current = true;
+      await sendMessage({ text: userMessage }, { body });
+    } catch {
+      if (mountedRef.current) setPreparationError("Could not start the conversation. Please try again.");
+    } finally {
+      if (mountedRef.current && preparationAttemptRef.current === attempt) setPreparing(false);
+    }
   };
 
   const handleDocumentSelect = (doc) => {
@@ -219,15 +216,15 @@ export function ChatWindow() {
 
   if (loadingHistory) {
     return (
-      <div className="flex h-[calc(100dvh-5.5rem)] min-h-[280px] items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground sm:min-h-[420px]">
-        <Loader2 className="mr-2 size-4 animate-spin text-primary" />
+      <div className="flex h-full min-h-0 items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground">
+        <HugeiconsIcon icon={Loading02Icon} className="mr-2 size-4 animate-spin text-primary" />
         Loading conversation…
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-[calc(100dvh-5.5rem)] min-h-[280px] flex-col overflow-hidden rounded-xl border bg-background shadow-sm sm:min-h-[420px]">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
       <ScrollArea ref={scrollRef} className="min-h-0 flex-1 px-3 sm:px-5">
         <ChatMessageList
           messages={messages}
@@ -247,7 +244,7 @@ export function ChatWindow() {
           className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 shadow-md backdrop-blur"
           onClick={() => scrollToLatest("smooth")}
         >
-          <ArrowDown className="size-3.5" />
+          <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
           Latest response
         </BaseChatButton>
       )}
@@ -259,18 +256,18 @@ export function ChatWindow() {
             onHistoryRetry={() => setHistoryRetry((attempt) => attempt + 1)}
             isStreaming={isStreaming}
             status={status}
-            onStop={stop}
+            onStop={() => {
+              preparationAttemptRef.current += 1;
+              setPreparing(false);
+              stop();
+            }}
             error={error}
             onRetry={() => {
               clearError();
-              regenerate({
-                body: {
-                  conversationId: conversationIdRef.current,
-                  documentId: selectedDocument?.id || null,
-                },
-              });
+              if (requestBodyRef.current) regenerate({ body: requestBodyRef.current });
             }}
           />
+          {preparationError && <p role="alert" className="mb-2 text-sm text-destructive">{preparationError}</p>}
           <form onSubmit={handleSubmit}>
             <ChatInput
               value={input}

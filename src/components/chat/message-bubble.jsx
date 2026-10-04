@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Bot, Check, Copy, FileSearch, User } from "lucide-react";
-import Link from "next/link";
-import { Streamdown } from "streamdown";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { BotIcon, FileSearchIcon, UserIcon } from "@hugeicons/core-free-icons";
+import { useMemo } from "react";
+import { useDocumentPreview } from "./document-preview";
+import { BaseChatButton } from "./base-chat-button";
+import { remarkCitations, verifiedCitationSource } from "@/lib/chat-citations";
+import { Streamdown, defaultRemarkPlugins } from "streamdown";
 import { cn } from "@/lib/utils";
-import { BaseChatButton } from "@/components/chat/base-chat-button";
+import { MessageActions } from "@/components/chat/message-actions";
 import { DocumentResultRenderer } from "@/components/chat/document-result-renderer";
 
 function ToolProgress({ label, failed = false }) {
@@ -19,7 +22,7 @@ function ToolProgress({ label, failed = false }) {
       )}
       role="status"
     >
-      <FileSearch className="size-3.5" aria-hidden="true" />
+      <HugeiconsIcon icon={FileSearchIcon} className="size-3.5" aria-hidden="true" />
       {label}
     </div>
   );
@@ -74,12 +77,24 @@ function ToolResult({ part }) {
 }
 
 function MessageText({ isUser, message, textParts, isStreaming }) {
+  const openSource = useDocumentPreview();
+  const remarkPlugins = useMemo(() => [...Object.values(defaultRemarkPlugins), [remarkCitations, { citations: (message.metadata?.sources || []).map((source) => source.citation).filter(Boolean) }]], [message]);
+  const components = useMemo(() => ({
+    a: ({ href, title, children }) => {
+      const match = href?.match(/^#dms-citation-(\d+)$/);
+      const source = match && (message.metadata?.sources || []).find((item) => item.citation === Number(match[1]));
+      if (source && openSource) return <BaseChatButton variant="ghost" className="mx-0.5 inline-flex h-6 min-w-6 rounded-md bg-muted px-1.5 py-0 align-baseline text-xs tabular-nums" aria-label={`Source ${source.citation}: ${source.documentName}`} title={source.documentName} onClick={() => openSource(verifiedCitationSource(source, title))}>{children}</BaseChatButton>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{children}</a>;
+    },
+  }), [message, openSource]);
   const content = textParts || (!message.parts?.length ? message.content : "");
   if (!content) return null;
   if (isUser) return <div className="whitespace-pre-wrap">{content}</div>;
 
   return (
     <Streamdown
+      remarkPlugins={remarkPlugins}
+      components={components}
       animated={{ animation: "blurIn", duration: 160, easing: "ease-out" }}
       isAnimating={isStreaming}
     >
@@ -107,6 +122,7 @@ function TypingIndicator() {
 }
 
 function SourceLinks({ sources }) {
+  const openSource = useDocumentPreview();
   return (
     <div className="mt-3 border-t pt-2.5">
       <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -116,13 +132,15 @@ function SourceLinks({ sources }) {
         {sources.map((source) => {
           const label = source?.documentName?.replace(/\.[^/.]+$/, "") || "View document";
           return source?.documentId ? (
-            <Link
-              key={source.documentId || source.documentName}
-              href={`/dashboard/document?documentId=${encodeURIComponent(source.documentId)}`}
+            <BaseChatButton
+              variant="ghost"
+              key={source.citation || source.documentId}
+              onClick={() => openSource?.(source)}
               className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border bg-background px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
+              {source.citation && <span className="text-muted-foreground">{source.citation}</span>}
               <span className="truncate">{label}</span>
-            </Link>
+            </BaseChatButton>
           ) : (
             <span key={source.documentName || label} className="text-xs text-muted-foreground">{label}</span>
           );
@@ -132,41 +150,10 @@ function SourceLinks({ sources }) {
   );
 }
 
-function CopyResponseButton({ text }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    if (!text || !navigator.clipboard) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      setCopied(false);
-    }
-  };
-
-  return (
-    <div className="mt-1 flex justify-end">
-      <BaseChatButton
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="h-7 px-2 text-xs text-muted-foreground"
-        onClick={handleCopy}
-        aria-label={copied ? "Response copied" : "Copy response"}
-      >
-        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        {copied ? "Copied" : "Copy"}
-      </BaseChatButton>
-    </div>
-  );
-}
-
 function getMessageView(message, isStreaming) {
   const isUser = message.role === "user";
   const sources = Array.from(new Map((message.metadata?.sources || []).map((source) => [
-    source?.documentId || source?.documentName || JSON.stringify(source),
+    source?.citation || source?.documentId || source?.documentName || JSON.stringify(source),
     source,
   ])).values());
   const parts = message.parts || [];
@@ -194,7 +181,7 @@ function AssistantMessage({ view }) {
   return (
     <article className="flex min-w-0 justify-start gap-2.5 sm:gap-3">
       <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl border bg-primary/8 text-primary" aria-hidden="true">
-        <Bot className="size-4" />
+        <HugeiconsIcon icon={BotIcon} className="size-4" />
       </div>
       <div className="w-full min-w-0 max-w-[calc(100%-2.75rem)]">
         <div className="min-w-0 break-words text-sm leading-7 sm:text-[15px]">
@@ -202,8 +189,8 @@ function AssistantMessage({ view }) {
           <ToolResults parts={view.parts} />
           {view.showTyping && <TypingIndicator />}
         </div>
-        {view.sources.length > 0 && !view.hasToolResults && <SourceLinks sources={view.sources} />}
-        {view.textParts && !view.isStreaming && <CopyResponseButton text={view.textParts} />}
+        {view.sources.length > 0 && <SourceLinks sources={view.sources} />}
+        {view.textParts && !view.isStreaming && <MessageActions message={view.message} text={view.textParts} />}
       </div>
     </article>
   );
@@ -216,7 +203,7 @@ function UserMessage({ view }) {
         <MessageText isUser message={view.message} textParts={view.textParts} />
       </div>
       <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground" aria-hidden="true">
-        <User className="size-4" />
+        <HugeiconsIcon icon={UserIcon} className="size-4" />
       </div>
     </article>
   );

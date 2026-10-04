@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "fs";
 import path from "path";
 import yaml from "js-yaml";
@@ -55,7 +56,7 @@ function buildRAGPrompt(
   const chunksText = validChunks
     .map((chunk, i) =>
       prompts.chunk_template
-        .replace("{index}", i)
+        .replace("{index}", i + 1)
         .replace("{content}", chunk.content)
     )
     .join("\n\n");
@@ -67,7 +68,7 @@ function buildRAGPrompt(
     .replace("{documentName}", docName)
     .replace("{chunks}", chunksText);
 
-  return `${prompts.system.global_chat}\n\n${contextSection}${conversationContext}\n\nUser Question: ${userMessage}\n\nWrite a direct, well-structured answer using concise Markdown when useful. Use short paragraphs and lists for steps or multiple findings. Cite only information supported by the provided document context.\n\nAnswer:`;
+  return `${prompts.system.global_chat}\n\n${contextSection}${conversationContext}\n\nUser Question: ${userMessage}\n\nWrite a direct, well-structured answer using concise Markdown when useful. Use short paragraphs and lists for steps or multiple findings. Cite facts using numbered Markdown links matching the context chunks, such as [1](#dms-citation-1 "exact excerpt copied from source 1"). Put the shortest verbatim passage supporting the claim in the link title. Never paraphrase the excerpt. If an excerpt contains quotation marks, use a bare [1] marker instead. Cite only information supported by those chunks. Do not invent citation numbers.\n\nAnswer:`;
 }
 
 export async function POST(request) {
@@ -83,7 +84,7 @@ export async function POST(request) {
     const body = await request.json();
     const { messages, conversationId, documentId } = body;
 
-    if (!messages || messages.length === 0) {
+    if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
         { error: "Messages are required" },
         { status: 400 }
@@ -91,7 +92,13 @@ export async function POST(request) {
     }
 
     const lastMessage = messages[messages.length - 1];
-    const userMessage = lastMessage.parts?.[0]?.text || lastMessage.content;
+    const userMessage = Array.isArray(lastMessage?.parts)
+      ? lastMessage.parts.filter((part) => part.type === "text").map((part) => part.text).join("")
+      : lastMessage?.content;
+    const clientTurnId = lastMessage?.id;
+    if (lastMessage?.role !== "user" || typeof userMessage !== "string" || !userMessage.trim() || typeof clientTurnId !== "string" || !clientTurnId || clientTurnId.length > 200) {
+      return NextResponse.json({ error: "A user message with text and an ID is required" }, { status: 400 });
+    }
 
     let selectedDocument = null;
     if (documentId) {
@@ -139,23 +146,31 @@ export async function POST(request) {
       isNewConversation = true;
     }
 
-    await prisma.message.create({
-      data: {
+    const userTurnId = createHash("sha256")
+      .update(`${session.user.id}:${conversation.id}:${clientTurnId}`)
+      .digest("hex");
+    await prisma.message.upsert({
+      where: { id: userTurnId },
+      update: {},
+      create: {
+        id: userTurnId,
         conversationId: conversation.id,
         role: "USER",
         content: userMessage,
       },
     });
 
-    const conversationHistory = await prisma.message.findMany({
+    const recentMessages = await prisma.message.findMany({
       where: {
         conversationId: conversation.id,
       },
       orderBy: {
-        createdAt: "asc",
+        createdAt: "desc",
       },
       take: 20,
     });
+
+    const conversationHistory = recentMessages.reverse();
 
     const contextChunks = await findRelevantContent(
       userMessage,
@@ -173,18 +188,18 @@ export async function POST(request) {
       selectedDocument?.name
     );
 
-    const sources =
-      contextChunks.length > 0
-        ? [
-            {
-              documentName:
-                selectedDocument?.name || contextChunks[0].documentName,
-              documentId: selectedDocument?.id || contextChunks[0].resourceId,
-            },
-          ]
-        : [];
+    const sources = contextChunks.filter((chunk) => chunk.content?.trim()).map((chunk, index) => ({
+      citation: index + 1,
+      documentName: chunk.documentName || selectedDocument?.name,
+      documentId: chunk.resourceId || selectedDocument?.id,
+      content: chunk.content,
+      quote: chunk.content,
+      chunkIndex: chunk.chunkIndex,
+    }));
+    const assistantMessageId = createHash("sha256").update(`${userTurnId}:assistant`).digest("hex");
 
     const messageMetadata = {
+      messageId: assistantMessageId,
       sources,
       conversationId: conversation.id,
       ...(selectedDocument && {
@@ -298,6 +313,7 @@ export async function POST(request) {
         try {
           let messageContent = "";
           const toolResults = [];
+          const toolParts = [];
 
           for (const msg of response.messages || []) {
             if (msg.role === "assistant" && msg.content) {
@@ -310,6 +326,9 @@ export async function POST(request) {
 
             if (msg.role === "tool" && msg.content) {
               for (const part of msg.content) {
+                if (part.type === "tool-result" && ["total_documents", "find_document_by_name"].includes(part.toolName)) {
+                  toolParts.push({ type: `tool-${part.toolName}`, toolCallId: part.toolCallId, state: "output-available", output: part.output?.value || part.output });
+                }
                 if (
                   part.type === "tool-result" &&
                   part.toolName === "total_documents"
@@ -347,17 +366,21 @@ export async function POST(request) {
               : messageContent || "";
 
           if (fullContent && fullContent.trim()) {
-            await prisma.message.create({
-              data: {
-                conversationId: conversation.id,
-                role: "ASSISTANT",
-                content: fullContent,
-                sources: sources.length > 0 ? sources : null,
-              },
+            const data = {
+              conversationId: conversation.id,
+              role: "ASSISTANT",
+              content: messageContent || fullContent,
+              sources: sources.length > 0 ? sources : [],
+              parts: [...(messageContent ? [{ type: "text", text: messageContent }] : []), ...toolParts],
+            };
+            await prisma.message.upsert({
+              where: { id: assistantMessageId },
+              update: { ...data, feedback: null },
+              create: { id: assistantMessageId, ...data },
             });
           }
 
-          if (isNewConversation) {
+          if (isNewConversation || conversation.title === "New Chat") {
             const appUrl =
               process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

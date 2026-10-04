@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon, Delete02Icon, Download01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Download, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { documentAPI } from "@/lib/api";
 import { toast } from "sonner";
@@ -104,7 +105,7 @@ export const DocumentViewer = () => {
               size="icon"
               onClick={() => router.push("/dashboard")}
             >
-              <ArrowLeft className="h-5 w-5" />
+              <HugeiconsIcon icon={ArrowLeft01Icon} className="h-5 w-5" />
             </Button>
             <div className="min-w-0 flex-1">
               <h1 className="text-lg font-semibold truncate">
@@ -124,7 +125,7 @@ export const DocumentViewer = () => {
               onClick={handleDownload}
               disabled={!document}
             >
-              <Download className="h-4 w-4" />
+              <HugeiconsIcon icon={Download01Icon} className="h-4 w-4" />
               <span className="hidden sm:inline">Download</span>
             </Button>
             <Button
@@ -134,7 +135,7 @@ export const DocumentViewer = () => {
               disabled={!document || document.status === "PROCESSING"}
               className="gap-2 hover:text-destructive"
             >
-              <Trash2 className="h-4 w-4" />
+              <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
               <span className="hidden sm:inline">Delete</span>
             </Button>
           </div>
@@ -144,7 +145,7 @@ export const DocumentViewer = () => {
       <div className="flex-1 overflow-hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <HugeiconsIcon icon={Loading02Icon} className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : document && downloadUrl ? (
           <PDFViewer fileUrl={downloadUrl} />

@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowRight01Icon, SparklesIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import { useSession } from "@/lib/auth-client";
 import { useAuthModal } from "@/components/auth/auth-modal-provider";
@@ -26,7 +27,7 @@ export function Hero() {
             className="mb-8 inline-flex"
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-4 py-1.5 text-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <HugeiconsIcon icon={SparklesIcon} className="h-4 w-4 text-primary" />
               <span>AI-Powered Document Intelligence</span>
             </div>
           </motion.div>
@@ -63,13 +64,13 @@ export function Hero() {
               <Button size="lg" asChild className="gap-2">
                 <Link href="/dashboard">
                   Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
+                  <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
                 </Link>
               </Button>
             ) : (
               <Button size="lg" onClick={openAuthModal} className="gap-2 cursor-pointer">
                 Try for Free
-                <ArrowRight className="h-4 w-4" />
+                <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
               </Button>
             )}
             <Button size="lg" variant="outline" asChild>

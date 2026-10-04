@@ -1,49 +1,41 @@
-import {
-  Check,
-  Clock3,
-  FileText,
-  FolderLock,
-  MessageSquareText,
-  Search,
-  ShieldCheck,
-  Workflow,
-} from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Clock03Icon, FileAttachmentIcon, FolderLockedIcon, Message01Icon, Search01Icon, Tick01Icon, WorkflowCircle01Icon, ShieldCheckIcon } from "@hugeicons/core-free-icons";
 
 const features = [
   {
     title: "AI chat with documents",
     description: "Ask questions and follow answers back to their source documents.",
-    Icon: MessageSquareText,
+    Icon: Message01Icon,
     visual: "chat",
   },
   {
     title: "Search your library",
     description: "Find a document by the information it contains, then open the source.",
-    Icon: Search,
+    Icon: Search01Icon,
     visual: "search",
   },
   {
     title: "PDF text extraction",
     description: "Make text-based and scanned PDFs easier to search and use.",
-    Icon: FileText,
+    Icon: FileAttachmentIcon,
     visual: "pdf",
   },
   {
     title: "Cloud storage connections",
     description: "Sync a Dropbox folder. Google Drive connection is coming soon.",
-    Icon: Workflow,
+    Icon: WorkflowCircle01Icon,
     visual: "cloud",
   },
   {
     title: "Background processing",
     description: "Uploads are queued while document processing runs in the background.",
-    Icon: Clock3,
+    Icon: Clock03Icon,
     visual: "queue",
   },
   {
     title: "Secure storage",
     description: "Private user-scoped files with time-limited links for file access.",
-    Icon: ShieldCheck,
+    Icon: ShieldCheckIcon,
     visual: "storage",
   },
 ];
@@ -56,12 +48,12 @@ function MiniPreview({ visual }) {
           Ask a question about a file
         </div>
         <div className="flex max-w-[88%] items-start gap-2 rounded-xl rounded-tl-sm border border-border bg-background px-3 py-2.5">
-          <MessageSquareText className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <HugeiconsIcon icon={Message01Icon} className="mt-0.5 size-3.5 shrink-0 text-primary" />
           <div className="w-full space-y-1.5">
             <div className="h-1.5 w-full rounded bg-muted" />
             <div className="h-1.5 w-3/4 rounded bg-muted" />
             <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-              <FileText className="size-3" /> Source document
+              <HugeiconsIcon icon={FileAttachmentIcon} className="size-3" /> Source document
             </span>
           </div>
         </div>
@@ -73,11 +65,11 @@ function MiniPreview({ visual }) {
     return (
       <div className="flex h-full flex-col justify-center gap-2" aria-hidden="true">
         <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-          <Search className="size-3.5" /> Search documents
+          <HugeiconsIcon icon={Search01Icon} className="size-3.5" /> Search documents
         </div>
         {["Project overview.pdf", "Meeting notes.pdf"].map((name) => (
           <div key={name} className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/70 px-3 py-2">
-            <FileText className="size-3.5 text-primary" />
+            <HugeiconsIcon icon={FileAttachmentIcon} className="size-3.5 text-primary" />
             <span className="text-xs text-foreground">{name}</span>
           </div>
         ))}
@@ -88,14 +80,14 @@ function MiniPreview({ visual }) {
   if (visual === "pdf") {
     return (
       <div className="flex h-full items-center gap-3 rounded-lg border border-border bg-background p-3" aria-hidden="true">
-        <FileText className="size-7 shrink-0 text-primary" />
+        <HugeiconsIcon icon={FileAttachmentIcon} className="size-7 shrink-0 text-primary" />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="h-1.5 w-full rounded bg-muted-foreground/20" />
           <div className="h-1.5 w-5/6 rounded bg-muted-foreground/20" />
           <div className="h-1.5 w-2/3 rounded bg-muted-foreground/20" />
         </div>
         <span className="inline-flex shrink-0 items-center gap-1 text-[10px] text-emerald-700 dark:text-emerald-400">
-          <Check className="size-3" /> Text ready
+          <HugeiconsIcon icon={Tick01Icon} className="size-3" /> Text ready
         </span>
       </div>
     );
@@ -118,7 +110,7 @@ function MiniPreview({ visual }) {
             <path fill="#00ac47" d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 0 0 0 53h27.5z" />
             <path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75L86.1 57.5c.8-1.4 1.2-2.95 1.2-4.5H59.798l5.852 11.5z" />
             <path fill="#00832d" d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" />
-            <path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.4 4.5-1.2z" />
+            <path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" />
             <path fill="#ffba00" d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" />
           </svg>
           <span className="text-[10px] text-foreground">Google Drive</span>
@@ -133,7 +125,7 @@ function MiniPreview({ visual }) {
       <div className="flex h-full flex-col justify-center gap-2" aria-hidden="true">
         {["Uploaded file.pdf", "Another document.pdf"].map((name, index) => (
           <div key={name} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2">
-            <FileText className="size-3.5 text-primary" />
+            <HugeiconsIcon icon={FileAttachmentIcon} className="size-3.5 text-primary" />
             <span className="min-w-0 flex-1 truncate text-xs text-foreground">{name}</span>
             <span className="text-[10px] text-muted-foreground">{index === 0 ? "Processing" : "Queued"}</span>
           </div>
@@ -145,12 +137,12 @@ function MiniPreview({ visual }) {
   return (
     <div className="flex h-full flex-col justify-center gap-3 rounded-lg border border-border bg-background p-3" aria-hidden="true">
       <div className="flex items-center gap-2">
-        <FolderLock className="size-4 text-primary" />
+        <HugeiconsIcon icon={FolderLockedIcon} className="size-4 text-primary" />
         <span className="text-xs font-medium text-foreground">Private document storage</span>
-        <Check className="ml-auto size-3.5 text-emerald-600 dark:text-emerald-400" />
+        <HugeiconsIcon icon={Tick01Icon} className="ml-auto size-3.5 text-emerald-600 dark:text-emerald-400" />
       </div>
       <div className="flex items-center gap-2 border-t border-border pt-2">
-        <Clock3 className="size-3.5 text-muted-foreground" />
+        <HugeiconsIcon icon={Clock03Icon} className="size-3.5 text-muted-foreground" />
         <span className="text-xs text-muted-foreground">Temporary links expire after 5 minutes</span>
       </div>
     </div>
@@ -181,7 +173,7 @@ export function Features() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-foreground transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary">
-                  <Icon className="size-5" aria-hidden="true" />
+                  <HugeiconsIcon icon={Icon} className="size-5" aria-hidden="true" />
                 </div>
                 <span className="mt-1 size-1.5 rounded-full bg-border transition-colors duration-200 group-hover:bg-primary" aria-hidden="true" />
               </div>

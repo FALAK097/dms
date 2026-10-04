@@ -1,15 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, File01Icon, FolderOpenIcon, Loading02Icon, Tick01Icon, Upload01Icon } from "@hugeicons/core-free-icons";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import {
-  Upload,
-  X,
-  File as FileIcon,
-  Loader2,
-  Check,
-  FolderOpen,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -191,7 +185,7 @@ export function UploadDialog({ onComplete }) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="whitespace-nowrap">
-          <Upload className="mr-2 h-4 w-4" />
+          <HugeiconsIcon icon={Upload01Icon} className="mr-2 h-4 w-4" />
           Upload Document
         </Button>
       </DialogTrigger>
@@ -217,7 +211,7 @@ export function UploadDialog({ onComplete }) {
               accept: ".pdf",
             })}
           />
-          <Upload className="h-6 w-6 text-muted-foreground" />
+          <HugeiconsIcon icon={Upload01Icon} className="h-6 w-6 text-muted-foreground" />
           <div className="text-sm">
             {isDragActive
               ? "Drop files here..."
@@ -235,7 +229,7 @@ export function UploadDialog({ onComplete }) {
               }}
               aria-label="Select a folder"
             >
-              <FolderOpen className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={FolderOpenIcon} className="mr-2 h-4 w-4" />
               Select Folder
             </Button>
             <input
@@ -271,7 +265,7 @@ export function UploadDialog({ onComplete }) {
                       className="flex items-center justify-between gap-3 p-3"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
-                        <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <HugeiconsIcon icon={File01Icon} className="h-4 w-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0 flex-1 overflow-hidden">
                           <div className="truncate text-sm">{f.name}</div>
                           <div className="text-xs text-muted-foreground">
@@ -289,7 +283,7 @@ export function UploadDialog({ onComplete }) {
                         disabled={uploading}
                         aria-label={`Remove ${f.name}`}
                       >
-                        <X className="h-4 w-4" />
+                        <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
                       </Button>
                     </li>
                   ))}
@@ -312,12 +306,12 @@ export function UploadDialog({ onComplete }) {
           <Button onClick={startUpload} disabled={disabled}>
             {uploading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                 Uploading
               </>
             ) : (
               <>
-                <Check className="mr-2 h-4 w-4" />
+                <HugeiconsIcon icon={Tick01Icon} className="mr-2 h-4 w-4" />
                 Upload
               </>
             )}

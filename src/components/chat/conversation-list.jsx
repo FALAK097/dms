@@ -1,25 +1,20 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { MessageSquare, Trash2, Edit2, Check, X } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon, Edit02Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Menu } from "@base-ui/react/menu";
+import { Dialog } from "@base-ui/react/dialog";
 import { conversationAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BaseChatButton } from "./base-chat-button";
 import { toast } from "sonner";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useChatStore } from "@/stores/chat-store";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 function groupConversationsByDate(conversations) {
   const now = new Date();
@@ -60,253 +55,93 @@ function groupConversationsByDate(conversations) {
 
 export function ConversationList() {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const currentConvId = searchParams.get("conversationId");
-  const { state } = useSidebar();
-  const { setCurrentConversation, clearCurrentConversation, refreshTrigger } =
-    useChatStore();
-
+  const currentId = useSearchParams().get("conversationId");
+  const { state, setOpenMobile } = useSidebar();
+  const refreshTrigger = useChatStore((state) => state.refreshTrigger);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [conversationToDelete, setConversationToDelete] = useState(null);
-
-  const fetchConversations = useCallback(async () => {
-    try {
-      const { conversations: convs } = await conversationAPI.getAll();
-      setConversations(convs || []);
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
-      toast.error("Failed to load conversations");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [failed, setFailed] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const [query, setQuery] = useState("");
+  const [renaming, setRenaming] = useState(null);
+  const [title, setTitle] = useState("");
+  const [deleting, setDeleting] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const titleRef = useRef(null);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    let ignored = false;
+    conversationAPI.getAll().then(({ conversations }) => {
+      if (!ignored) { setConversations(conversations || []); setFailed(false); }
+    }).catch(() => { if (!ignored) setFailed(true); })
+      .finally(() => { if (!ignored) setLoading(false); });
+    return () => { ignored = true; };
+  }, [currentId, refreshTrigger, retry]);
 
-  useEffect(() => {
-    if (pathname === "/chat" && currentConvId) {
-      const exists = conversations.some((c) => c.id === currentConvId);
-      if (!exists) {
-        fetchConversations();
-      }
-    }
-  }, [currentConvId, pathname, conversations, fetchConversations]);
-
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      fetchConversations();
-    }
-  }, [refreshTrigger, fetchConversations]);
-
-  const handleConversationClick = (id) => {
-    setCurrentConversation(id);
-    router.push(`/chat?conversationId=${id}`);
-  };
-
-  const handleEditStart = (conv, e) => {
-    if (e) e.stopPropagation();
-    setEditingId(conv.id);
-    setEditTitle(conv.title);
-  };
-
-  const handleDoubleClick = (conv, e) => {
-    e.stopPropagation();
-    handleEditStart(conv);
-  };
-
-  const handleEditSave = async (id, e) => {
-    e.stopPropagation();
+  async function rename(event) {
+    event.preventDefault();
+    const nextTitle = title.trim();
+    if (!renaming || !nextTitle || busy) return;
+    setBusy(true);
     try {
-      await conversationAPI.updateTitle(id, editTitle);
-      setConversations((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, title: editTitle } : c))
-      );
-      setEditingId(null);
-      toast.success("Title updated");
-    } catch (error) {
-      console.error("Error updating title:", error);
-      toast.error("Failed to update title");
-    }
-  };
+      const { conversation } = await conversationAPI.updateTitle(renaming.id, nextTitle);
+      setConversations((items) => items.map((item) => item.id === conversation.id ? { ...item, title: conversation.title } : item));
+      setRenaming(null);
+      toast.success("Conversation renamed");
+    } catch { toast.error("Could not rename the conversation."); }
+    finally { setBusy(false); }
+  }
 
-  const handleEditCancel = (e) => {
-    e.stopPropagation();
-    setEditingId(null);
-    setEditTitle("");
-  };
-
-  const handleDeleteClick = (conv, e) => {
-    e.stopPropagation();
-    setConversationToDelete(conv);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!conversationToDelete) return;
-
+  async function remove(event) {
+    event.preventDefault();
+    if (!deleting || busy) return;
+    setBusy(true);
     try {
-      await conversationAPI.delete(conversationToDelete.id);
-      setConversations((prev) =>
-        prev.filter((c) => c.id !== conversationToDelete.id)
-      );
+      await conversationAPI.delete(deleting.id);
+      setConversations((items) => items.filter((item) => item.id !== deleting.id));
+      if (currentId === deleting.id) { useChatStore.getState().startNewChat(); router.push("/chat"); }
+      setDeleting(null);
       toast.success("Conversation deleted");
-
-      if (currentConvId === conversationToDelete.id) {
-        clearCurrentConversation();
-        router.push("/chat");
-      }
-    } catch (error) {
-      console.error("Error deleting conversation:", error);
-      toast.error("Failed to delete conversation");
-    } finally {
-      setDeleteDialogOpen(false);
-      setConversationToDelete(null);
-    }
-  };
-  if (loading) {
-    if (state === "collapsed") {
-      return <div className="h-10" />;
-    }
-
-    return (
-      <div className="space-y-4 px-3 py-2">
-        <div>
-          <div className="mb-2 px-2">
-            <div className="h-3 w-16 bg-muted-foreground/20 rounded animate-pulse" />
-          </div>
-          <div className="space-y-1">
-            {[1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 rounded-md px-2 py-2"
-              >
-                <div className="h-4 w-4 bg-muted-foreground/20 rounded animate-pulse shrink-0" />
-                <div className="flex-1 h-4 bg-muted-foreground/20 rounded animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    } catch { toast.error("Could not delete the conversation."); }
+    finally { setBusy(false); }
   }
 
-  if (conversations.length === 0) {
-    return null;
-  }
-
-  const groupedConversations = groupConversationsByDate(conversations);
-
-  if (state === "collapsed") {
-    return <div className="h-10" />;
-  }
-
+  if (state === "collapsed") return null;
+  const groups = groupConversationsByDate(conversations.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())));
   return (
     <>
-      <div className="space-y-4 px-3 py-2 overflow-y-auto scrollbar-hide">
-        {Object.entries(groupedConversations).map(([group, convs]) => {
-          if (convs.length === 0) return null;
-
-          return (
-            <div key={group}>
-              <h4 className="mb-2 px-2 text-xs font-semibold text-muted-foreground">
-                {group}
-              </h4>
-              <div className="space-y-1">
-                {convs.map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => handleConversationClick(conv.id)}
-                    onDoubleClick={(e) => handleDoubleClick(conv, e)}
-                    className={cn(
-                      "group/item flex items-center gap-2 rounded-md px-2 py-2 text-sm cursor-pointer transition-colors",
-                      currentConvId === conv.id
-                        ? "bg-accent text-accent-foreground"
-                        : "hover:bg-accent/50"
-                    )}
-                  >
-                    {editingId === conv.id ? (
-                      <div className="flex flex-1 items-center gap-1">
-                        <Input
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-6 text-sm"
-                          autoFocus
-                        />
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={(e) => handleEditSave(conv.id, e)}
-                        >
-                          <Check className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={handleEditCancel}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        <span className="flex-1 truncate">{conv.title}</span>
-                        <div className="hidden group-hover/item:flex items-center gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={(e) => handleEditStart(conv, e)}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={(e) => handleDeleteClick(conv, e)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+      <div className="space-y-4 overflow-y-auto px-3 py-2">
+        <Input aria-label="Search conversations" placeholder="Search chats" value={query} onChange={(event) => setQuery(event.target.value)} className="h-9 bg-sidebar text-xs" />
+        {loading ? <div role="status" aria-label="Loading conversations" className="space-y-2">{[1, 2, 3].map((key) => <div key={key} className="h-9 animate-pulse rounded-md bg-muted" />)}</div> : failed ? <div role="alert" className="text-xs text-muted-foreground">Could not load chats. <button type="button" className="underline" onClick={() => setRetry((n) => n + 1)}>Try again</button></div> : !conversations.length ? <p className="px-2 text-xs text-muted-foreground">Your conversations will appear here.</p> : !Object.values(groups).some((items) => items.length) ? <p className="px-2 text-xs text-muted-foreground">No matching conversations.</p> : Object.entries(groups).map(([group, items]) => items.length > 0 && (
+          <section key={group} aria-label={group}>
+            <h4 className="mb-1 px-2 text-xs font-medium text-muted-foreground">{group}</h4>
+            {items.map((conversation) => (
+              <div key={conversation.id} className={cn("group flex items-center rounded-md", currentId === conversation.id && "bg-sidebar-accent")}>
+                <Link href={`/chat?conversationId=${encodeURIComponent(conversation.id)}`} aria-current={currentId === conversation.id ? "page" : undefined} onClick={() => setOpenMobile(false)} className="min-w-0 flex-1 truncate rounded-md px-2 py-2.5 text-sm hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" title={conversation.title}>{conversation.title}</Link>
+                <Menu.Root>
+                  <Menu.Trigger render={<BaseChatButton variant="ghost" size="icon" className="size-8" aria-label={`Actions for ${conversation.title}`} />}><HugeiconsIcon icon={MoreHorizontalIcon} size={16} /></Menu.Trigger>
+                  <Menu.Portal><Menu.Positioner side="right" align="start" sideOffset={6} className="z-50"><Menu.Popup className="min-w-36 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md outline-none">
+                    <Menu.Item className="flex cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm data-highlighted:bg-accent" onClick={() => { setTitle(conversation.title); setRenaming(conversation); }}><HugeiconsIcon icon={Edit02Icon} size={16} />Rename</Menu.Item>
+                    <Menu.Item className="flex cursor-default items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive data-highlighted:bg-accent" onClick={() => setDeleting(conversation)}><HugeiconsIcon icon={Delete02Icon} size={16} />Delete</Menu.Item>
+                  </Menu.Popup></Menu.Positioner></Menu.Portal>
+                </Menu.Root>
               </div>
-            </div>
-          );
-        })}
+            ))}
+          </section>
+        ))}
       </div>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete “{conversationToDelete?.title}”?
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+      <Dialog.Root open={Boolean(renaming)} onOpenChange={(open) => { if (!open && !busy) setRenaming(null); }}>
+        <Dialog.Portal><Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40" /><Dialog.Popup initialFocus={titleRef} className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border bg-background p-6 shadow-lg outline-none">
+          <Dialog.Title className="text-lg font-semibold">Rename conversation</Dialog.Title>
+          <Dialog.Description className="mt-1 text-sm text-muted-foreground">Choose a title you can find in your chat history.</Dialog.Description>
+          <form onSubmit={rename} className="mt-4 space-y-4">
+            <Input ref={titleRef} aria-label="Conversation title" value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} disabled={busy} />
+            <div className="flex justify-end gap-2"><Dialog.Close render={<BaseChatButton variant="outline" disabled={busy} />}>Cancel</Dialog.Close><BaseChatButton type="submit" disabled={busy || !title.trim()}>{busy ? "Saving…" : "Save"}</BaseChatButton></div>
+          </form>
+        </Dialog.Popup></Dialog.Portal>
+      </Dialog.Root>
+      <AlertDialog open={Boolean(deleting)} onOpenChange={(open) => { if (!open && !busy) setDeleting(null); }}>
+        <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Delete conversation?</AlertDialogTitle><AlertDialogDescription>“{deleting?.title}” and its messages will be permanently deleted.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel><AlertDialogAction onClick={remove} disabled={busy} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{busy ? "Deleting…" : "Delete"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
       </AlertDialog>
     </>
   );

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Settings } from "lucide-react";
+import { DashboardCircleIcon, Settings01Icon } from "@hugeicons/core-free-icons";
 
 import { NavMain } from "./nav-main";
 import { NavGroups } from "./nav-groups";
@@ -30,13 +30,13 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: LayoutDashboard,
+      icon: DashboardCircleIcon,
       isActive: true,
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings,
+      icon: Settings01Icon,
     },
   ],
   groups: [],

@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { File01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState, useRef } from "react";
 import { documentAPI } from "@/lib/api";
-import { File, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -41,6 +42,7 @@ export function DocumentMentionDropdown({
   });
 
   const handleKeyDown = (e) => {
+    if (e.isComposing || e.keyCode === 229) return;
     if (!isOpen || filteredDocuments.length === 0) return;
 
     switch (e.key) {
@@ -112,7 +114,7 @@ export function DocumentMentionDropdown({
       >
         {loading ? (
           <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <HugeiconsIcon icon={Loading02Icon} className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredDocuments.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
@@ -124,6 +126,7 @@ export function DocumentMentionDropdown({
           <div className="p-1">
             {filteredDocuments.map((doc, index) => (
               <button
+                type="button"
                 ref={selectedIndex === index ? selectedItemRef : null}
                 key={doc.id}
                 onClick={() => onSelect(doc)}
@@ -135,7 +138,7 @@ export function DocumentMentionDropdown({
                 onMouseEnter={() => setSelectedIndex(index)}
               >
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10">
-                  <File className="h-4 w-4 text-primary" />
+                  <HugeiconsIcon icon={File01Icon} className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">

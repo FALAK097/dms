@@ -57,6 +57,9 @@ export async function PATCH(request, { params }) {
 
     const { id } = await params;
     const { title } = await request.json();
+    if (typeof title !== "string" || !title.trim() || title.trim().length > 120) {
+      return NextResponse.json({ error: "Title must contain 1–120 characters" }, { status: 400 });
+    }
 
     const conversation = await prisma.conversation.findUnique({
       where: { id },
@@ -76,7 +79,7 @@ export async function PATCH(request, { params }) {
 
     const updated = await prisma.conversation.update({
       where: { id },
-      data: { title },
+      data: { title: title.trim() },
     });
 
     return NextResponse.json({ conversation: updated });
