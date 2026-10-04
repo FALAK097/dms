@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { useMounted } from "@/hooks/use-mounted";
 
 export function LandingThemeToggle() {
-  const { resolvedTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const mounted = useMounted();
 
   if (!mounted) return null;
 
-  const isDark = resolvedTheme === "dark";
+  const isDark = theme === "dark";
   const Icon = isDark ? Sun : Moon;
   const label = isDark ? "Light Mode" : "Dark Mode";
 

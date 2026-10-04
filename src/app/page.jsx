@@ -1,29 +1,25 @@
+import { Demo } from "@/components/landing/demo";
 import { FAQ } from "@/components/landing/faq";
 import { Features } from "@/components/landing/features";
-import { ChatShowcase } from "@/components/landing/chat-showcase";
 import { Footer } from "@/components/landing/footer";
-import { FinalCTA } from "@/components/landing/final-cta";
 import { Hero } from "@/components/landing/hero";
-import { Integrations } from "@/components/landing/integrations";
 import { Navbar } from "@/components/landing/navbar";
 
 export const metadata = {
-  title: "DMS | Documents, in context",
+  title: "DMS - AI-Powered Document Management",
   description:
-    "Organize PDF documents, connect Dropbox, and ask questions with answers linked to their sources.",
+    "Upload, organize, and chat with your documents using AI. Automatic OCR, smart search, and seamless cloud sync—all in one place.",
 };
 
 export default function Home() {
   return (
-    <div className="landing-page min-h-screen">
+    <div className="min-h-screen">
       <Navbar />
       <main>
         <Hero />
+        {/* <Demo /> */}
         <Features />
-        <ChatShowcase />
-        <Integrations />
         <FAQ />
-        <FinalCTA />
       </main>
       <Footer />
     </div>

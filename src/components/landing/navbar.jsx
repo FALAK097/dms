@@ -13,20 +13,20 @@ export function Navbar() {
   const { openAuthModal } = useAuthModal();
 
   return (
-    <nav className="landing-navbar fixed top-0 left-0 right-0 z-50">
-      <div className="landing-container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <div className="container mx-auto max-w-7xl flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
           <Image
             src="/images/logo.png"
             alt="DMS Logo"
             width={36}
             height={36}
-            className="h-8 w-8 rounded-md"
+            className="h-9 w-9"
           />
-          <span className="text-lg tracking-tight">DMS</span>
+          <span className="text-xl">DMS</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <LandingThemeToggle />
           <div className="flex items-center gap-2">
             {!isPending && session ? (
@@ -34,8 +34,8 @@ export function Navbar() {
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
             ) : (
-              <Button onClick={openAuthModal} className="landing-nav-cta cursor-pointer">
-                Get started
+              <Button onClick={openAuthModal} className="cursor-pointer">
+                Try for Free
               </Button>
             )}
           </div>

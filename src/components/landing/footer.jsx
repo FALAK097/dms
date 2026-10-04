@@ -24,7 +24,8 @@ export function Footer() {
               <span className="text-xl">DMS</span>
             </Link>
             <p className="mb-4 max-w-sm text-sm text-muted-foreground">
-              Keep your files together and find the right detail, with every answer close to its source.
+              AI-powered document management made simple. Upload, organize, and
+              chat with your documents effortlessly.
             </p>
             <div className="flex gap-4">
               <Link
@@ -54,7 +55,7 @@ export function Footer() {
             <ul className="space-y-3 text-sm">
               <li>
                 <Link
-                  href="#how-it-works"
+                  href="#features"
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Features
@@ -74,14 +75,6 @@ export function Footer() {
                   className="text-muted-foreground transition-colors hover:text-foreground"
                 >
                   Chat
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="#connections"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Connections
                 </Link>
               </li>
             </ul>

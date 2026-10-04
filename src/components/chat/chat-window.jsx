@@ -197,7 +197,7 @@ export function ChatWindow() {
     viewport.addEventListener("scroll", updateScrollState, { passive: true });
     updateScrollState();
     return () => viewport.removeEventListener("scroll", updateScrollState);
-  }, [getScrollViewport]);
+  }, [getScrollViewport, loadingHistory]);
 
   useEffect(() => {
     const viewport = getScrollViewport();
@@ -215,7 +215,7 @@ export function ChatWindow() {
     });
     resizeObserver.observe(content);
     return () => resizeObserver.disconnect();
-  }, [getScrollViewport]);
+  }, [getScrollViewport, loadingHistory]);
 
   if (loadingHistory) {
     return (
@@ -263,7 +263,12 @@ export function ChatWindow() {
             error={error}
             onRetry={() => {
               clearError();
-              regenerate();
+              regenerate({
+                body: {
+                  conversationId: conversationIdRef.current,
+                  documentId: selectedDocument?.id || null,
+                },
+              });
             }}
           />
           <form onSubmit={handleSubmit}>
