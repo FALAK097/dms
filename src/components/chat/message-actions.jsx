@@ -5,6 +5,12 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Copy01Icon, Tick01Icon, ThumbsUpIcon, ThumbsDownIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { BaseChatButton } from "./base-chat-button";
+import { cn } from "@/lib/utils";
+
+const feedbackVariants = {
+  1: "text-emerald-600 dark:text-emerald-400",
+  [-1]: "text-red-600 dark:text-red-400",
+};
 
 export function MessageActions({ message, text }) {
   const [copied, setCopied] = useState(false);
@@ -42,11 +48,29 @@ export function MessageActions({ message, text }) {
       <BaseChatButton variant="ghost" size="icon" className="size-9" onClick={copy} aria-label={copied ? "Response copied" : "Copy response"} title={copied ? "Copied" : "Copy response"}>
         <HugeiconsIcon icon={copied ? Tick01Icon : Copy01Icon} size={16} />
       </BaseChatButton>
-      {[[1, ThumbsUpIcon, "Helpful"], [-1, ThumbsDownIcon, "Not helpful"]].map(([value, icon, label]) => (
-        <BaseChatButton key={value} variant="ghost" size="icon" className="size-9 aria-pressed:bg-muted aria-pressed:text-foreground" aria-label={label} title={label} aria-pressed={feedback === value} disabled={saving || !messageId} onClick={() => rate(value)}>
-          <HugeiconsIcon icon={icon} size={16} />
-        </BaseChatButton>
-      ))}
+      {[[1, ThumbsUpIcon, "Helpful"], [-1, ThumbsDownIcon, "Not helpful"]].map(([value, icon, label]) => {
+        const active = feedback === value;
+        return (
+          <BaseChatButton
+            key={value}
+            variant="ghost"
+            size="icon"
+            className={cn("size-9", active && feedbackVariants[value])}
+            aria-label={label}
+            title={label}
+            aria-pressed={active}
+            disabled={saving || !messageId}
+            onClick={() => rate(value)}
+          >
+            <HugeiconsIcon
+              key={String(active)}
+              icon={icon}
+              size={16}
+              className={cn(active && "feedback-pop [&_path]:fill-current")}
+            />
+          </BaseChatButton>
+        );
+      })}
       <span role="status" className="sr-only">{copied ? "Response copied" : saving ? "Saving feedback" : ""}</span>
     </div>
   );

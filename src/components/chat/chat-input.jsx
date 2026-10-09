@@ -1,7 +1,7 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, SentIcon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { useRef, useEffect, useState } from "react";
 import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { Textarea } from "@/components/ui/textarea";
@@ -131,13 +131,13 @@ export function ChatInput({
               ? "Answer is streaming…"
               : selectedDocument
               ? `Ask about ${selectedDocument.name}…`
-              : "Ask a question about your documents…"
+              : "@ to choose a PDF, or ask a question…"
           }
           disabled={disabled}
           rows={1}
           className={cn(
-            "min-h-12 max-h-[200px] min-w-0 resize-none flex-1 rounded-xl bg-muted/30 text-sm sm:text-base",
-            "focus-visible:ring-1"
+            "min-h-12 max-h-[200px] min-w-0 resize-none flex-1 rounded-lg border-none bg-transparent text-sm shadow-none sm:text-base",
+            "focus-visible:ring-2 focus-visible:ring-ring/50"
           )}
           aria-label="Chat message"
         />
@@ -149,10 +149,10 @@ export function ChatInput({
                   type="submit"
                   disabled={!value?.trim() || disabled}
                   size="icon"
-                  className="h-12 w-12 shrink-0 rounded-xl"
+                  className="h-10 w-10 shrink-0 rounded-full"
                   aria-label="Send message"
                 >
-                  <HugeiconsIcon icon={SentIcon} className="h-5 w-5" />
+                  <HugeiconsIcon icon={ArrowUp02Icon} className="h-5 w-5" />
                 </BaseChatButton>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
@@ -169,9 +169,6 @@ export function ChatInput({
           searchQuery={searchQuery}
         />
       </div>
-      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-[11px] leading-4 text-muted-foreground">
-        <span className="whitespace-nowrap">@ to choose a PDF</span>
-      </p>
     </div>
   );
 }

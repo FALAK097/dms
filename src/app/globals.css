@@ -206,6 +206,22 @@ body {
   }
 }
 
+@keyframes feedback-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.feedback-pop {
+  animation: feedback-pop 0.35s ease;
+}
+
 .pdf-viewer-container {
   --rpv-background-color: hsl(var(--background));
   --rpv-foreground-color: hsl(var(--foreground));

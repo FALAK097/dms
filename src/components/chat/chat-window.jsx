@@ -216,7 +216,7 @@ function ConversationChat({ activeConversationId }) {
 
   if (loadingHistory) {
     return (
-      <div className="flex h-full min-h-0 items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground">
+      <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
         <HugeiconsIcon icon={Loading02Icon} className="mr-2 size-4 animate-spin text-primary" />
         Loading conversation…
       </div>
@@ -224,7 +224,7 @@ function ConversationChat({ activeConversationId }) {
   }
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-background">
       <ScrollArea ref={scrollRef} className="min-h-0 flex-1 px-3 sm:px-5">
         <ChatMessageList
           messages={messages}
@@ -240,16 +240,16 @@ function ConversationChat({ activeConversationId }) {
         <BaseChatButton
           type="button"
           variant="outline"
-          size="sm"
-          className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 shadow-md backdrop-blur"
+          size="icon"
+          className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 size-8 rounded-full bg-background/95 shadow-md backdrop-blur"
+          aria-label="Scroll to latest response"
           onClick={() => scrollToLatest("smooth")}
         >
           <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
-          Latest response
         </BaseChatButton>
       )}
 
-      <div className="border-t bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4">
+      <div className="bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4">
         <div className="mx-auto max-w-3xl">
           <ChatFeedback
             historyError={historyError}
