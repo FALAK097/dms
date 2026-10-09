@@ -2,7 +2,7 @@
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDown01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
-import { useRef, useEffect, useMemo, useState, useCallback } from "react";
+import { useRef, useEffect, useLayoutEffect, useMemo, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -184,17 +184,38 @@ function ConversationChat({ activeConversationId }) {
     const viewport = getScrollViewport();
     if (!viewport) return;
 
+    let lastSaved = 0;
+    const saveScroll = () => {
+      if (!activeConversationId) return;
+      const now = Date.now();
+      if (now - lastSaved < 300) return;
+      lastSaved = now;
+      useChatStore.getState().setScrollPosition(activeConversationId, viewport.scrollTop);
+    };
+
     const updateScrollState = () => {
       const distanceFromBottom =
         viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
       shouldFollowRef.current = distanceFromBottom <= 96;
       setShowScrollToLatest(distanceFromBottom > 96);
+      saveScroll();
     };
 
     viewport.addEventListener("scroll", updateScrollState, { passive: true });
     updateScrollState();
     return () => viewport.removeEventListener("scroll", updateScrollState);
-  }, [getScrollViewport, loadingHistory]);
+  }, [getScrollViewport, loadingHistory, activeConversationId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      const viewport = getScrollViewport();
+      if (viewport && activeConversationId) {
+        useChatStore.getState().setScrollPosition(activeConversationId, viewport.scrollTop);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [getScrollViewport, activeConversationId]);
 
   useEffect(() => {
     const viewport = getScrollViewport();
@@ -213,6 +234,27 @@ function ConversationChat({ activeConversationId }) {
     resizeObserver.observe(content);
     return () => resizeObserver.disconnect();
   }, [getScrollViewport, loadingHistory]);
+
+  const restoredConversationRef = useRef(null);
+  useLayoutEffect(() => {
+    const viewport = getScrollViewport();
+    if (!viewport || !activeConversationId || loadedConversationId !== activeConversationId) return;
+    if (restoredConversationRef.current === activeConversationId) return;
+    restoredConversationRef.current = activeConversationId;
+
+    const saved = useChatStore.getState().getScrollPosition(activeConversationId);
+    if (typeof saved === "number") {
+      viewport.scrollTop = saved;
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      shouldFollowRef.current = distanceFromBottom <= 96;
+      setShowScrollToLatest(distanceFromBottom > 96);
+    } else {
+      viewport.scrollTop = viewport.scrollHeight;
+      shouldFollowRef.current = true;
+      setShowScrollToLatest(false);
+    }
+  }, [getScrollViewport, activeConversationId, loadedConversationId]);
 
   if (loadingHistory) {
     return (
