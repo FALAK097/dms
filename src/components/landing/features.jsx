@@ -6,36 +6,42 @@ const features = [
     title: "AI chat with documents",
     description: "Ask questions and follow answers back to their source documents.",
     Icon: Message01Icon,
+    iconClass: "text-emerald-600 dark:text-emerald-400",
     visual: "chat",
   },
   {
     title: "Search your library",
     description: "Find a document by the information it contains, then open the source.",
     Icon: Search01Icon,
+    iconClass: "text-blue-600 dark:text-blue-400",
     visual: "search",
   },
   {
     title: "PDF text extraction",
     description: "Make text-based and scanned PDFs easier to search and use.",
     Icon: FileAttachmentIcon,
+    iconClass: "text-amber-600 dark:text-amber-400",
     visual: "pdf",
   },
   {
     title: "Cloud storage connections",
     description: "Sync a Dropbox folder. Google Drive connection is coming soon.",
     Icon: WorkflowCircle01Icon,
+    iconClass: "text-violet-600 dark:text-violet-400",
     visual: "cloud",
   },
   {
     title: "Background processing",
     description: "Uploads are queued while document processing runs in the background.",
     Icon: Clock03Icon,
+    iconClass: "text-sky-600 dark:text-sky-400",
     visual: "queue",
   },
   {
     title: "Secure storage",
     description: "Private user-scoped files with time-limited links for file access.",
     Icon: ShieldCheckIcon,
+    iconClass: "text-rose-600 dark:text-rose-400",
     visual: "storage",
   },
 ];
@@ -153,28 +159,21 @@ export function Features() {
   return (
     <section id="features" className="py-16 md:py-24">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 flex flex-col justify-between gap-4 sm:mb-12 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Made for your documents</p>
-            <h2 className="max-w-2xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Everything you need to manage documents
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Bring your files together, find what matters, and ask questions with the source close at hand.
-          </p>
+        <div className="mb-10 sm:mb-12">
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Made for your documents</p>
+          <h2 className="max-w-2xl font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Everything you need to manage documents
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map(({ title, description, Icon, visual }) => (
+          {features.map(({ title, description, Icon, iconClass, visual }) => (
             <article
               key={title}
               className="group flex min-h-[264px] flex-col rounded-2xl border border-border bg-card p-5 transition-[border-color,background-color,box-shadow] duration-200 hover:border-primary/35 hover:bg-accent/30 hover:shadow-sm focus-within:border-primary/35 focus-within:shadow-sm sm:p-6"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-foreground transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary">
-                  <HugeiconsIcon icon={Icon} className="size-5" aria-hidden="true" />
-                </div>
+                <HugeiconsIcon icon={Icon} className={`size-6 ${iconClass}`} aria-hidden="true" />
                 <span className="mt-1 size-1.5 rounded-full bg-border transition-colors duration-200 group-hover:bg-primary" aria-hidden="true" />
               </div>
               <h3 className="mt-5 text-base font-medium tracking-tight text-foreground sm:text-lg">{title}</h3>
