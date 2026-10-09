@@ -159,16 +159,11 @@ export function Features() {
   return (
     <section id="features" className="py-16 md:py-24">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 flex flex-col justify-between gap-4 sm:mb-12 sm:flex-row sm:items-end">
-          <div>
-            <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Made for your documents</p>
-            <h2 className="max-w-2xl font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Everything you need to manage documents
-            </h2>
-          </div>
-          <p className="max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Bring your files together, find what matters, and ask questions with the source close at hand.
-          </p>
+        <div className="mb-10 sm:mb-12">
+          <p className="mb-3 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">Made for your documents</p>
+          <h2 className="max-w-2xl font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Everything you need to manage documents
+          </h2>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

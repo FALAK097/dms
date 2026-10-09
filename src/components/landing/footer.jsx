@@ -1,20 +1,33 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GithubIcon, TwitterIcon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, GithubIcon, TwitterIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/auth-client";
+import { useAuthModal } from "@/components/auth/auth-modal-provider";
+
+const productLinks = [
+  { label: "Features", href: "#features" },
+  { label: "Dashboard", href: "/dashboard" },
+];
+
+const resourceLinks = [
+  { label: "FAQ", href: "#faq" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
+];
 
 export function Footer() {
+  const { data: session, isPending } = useSession();
+  const { openAuthModal } = useAuthModal();
+
   return (
     <footer className="border-t border-border/40">
-      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
-          <div className="sm:col-span-2">
-            <Link
-              href="/"
-              className="mb-4 flex items-center gap-2 font-semibold"
-            >
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 md:py-20">
+        <div className="grid gap-10 md:grid-cols-12">
+          <div className="md:col-span-5">
+            <Link href="/" className="mb-5 flex items-center gap-2 font-semibold">
               <Image
                 src="/images/logo.png"
                 alt="DMS Logo"
@@ -24,9 +37,8 @@ export function Footer() {
               />
               <span className="text-xl">DMS</span>
             </Link>
-            <p className="mb-4 max-w-sm text-sm text-muted-foreground">
-              AI-powered document management made simple. Upload, organize, and
-              chat with your documents effortlessly.
+            <p className="mb-6 max-w-xs font-display text-xl leading-snug tracking-tight">
+              Ask your documents. Get answers you can cite.
             </p>
             <div className="flex gap-4">
               <Link
@@ -50,56 +62,81 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Product */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Product</h3>
-            <ul className="space-y-3 text-sm">
-              <li>
-                <Link
-                  href="#features"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/dashboard"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/chat"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Chat
-                </Link>
-              </li>
+          <nav className="md:col-span-2" aria-label="Product">
+            <ul className="space-y-4 text-[15px]">
+              {productLinks.map(({ label, href }) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
-          </div>
+          </nav>
 
-          {/* Company */}
-          <div>
-            <h3 className="mb-4 text-sm font-semibold">Company</h3>
-            <ul className="space-y-3 text-sm">
-              <li>
-                <Link
-                  href="/privacy-policy"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  Privacy Policy
-                </Link>
-              </li>
+          <nav className="md:col-span-2" aria-label="Resources">
+            <ul className="space-y-4 text-[15px]">
+              {resourceLinks.map(({ label, href }) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
+          </nav>
+
+          <div className="md:col-span-3">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="font-medium tracking-tight">Start with your first PDF.</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                Upload a deed or agreement and ask your first question.
+              </p>
+              {!isPending && session ? (
+                <Button size="sm" asChild className="mt-4 w-full gap-1.5">
+                  <Link href="/dashboard">
+                    Go to Dashboard
+                    <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+                  </Link>
+                </Button>
+              ) : (
+                <Button size="sm" onClick={openAuthModal} className="mt-4 w-full gap-1.5 cursor-pointer">
+                  Try for Free
+                  <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
-          <p suppressHydrationWarning>© {new Date().getFullYear()} DMS. All rights reserved.</p>
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-border/40 pt-7 sm:flex-row">
+          <p suppressHydrationWarning className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} DMS. All rights reserved.
+          </p>
+          {!isPending && session ? (
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1 text-sm font-medium transition-colors hover:text-foreground"
+            >
+              Go to Dashboard
+              <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="inline-flex cursor-pointer items-center gap-1 text-sm font-medium transition-colors hover:text-foreground"
+            >
+              Try for Free
+              <HugeiconsIcon icon={ArrowRight01Icon} className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     </footer>

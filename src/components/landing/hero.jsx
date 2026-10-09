@@ -1,7 +1,7 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, FileAttachmentIcon, SparklesIcon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, FileAttachmentIcon, Tick01Icon } from "@hugeicons/core-free-icons";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -22,23 +22,11 @@ export function Hero() {
             transition={{ duration: 0.5 }}
             className="lg:col-span-5"
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="mb-7 inline-flex"
-            >
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-muted px-4 py-1.5 text-sm">
-                <HugeiconsIcon icon={SparklesIcon} className="h-4 w-4 text-primary" />
-                <span>AI chat for legal &amp; property documents</span>
-              </div>
-            </motion.div>
-
             <motion.h1
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="mb-6 font-display text-[clamp(2.6rem,5vw,4.1rem)] leading-[1.04] font-semibold tracking-tight text-balance"
+              className="mb-5 font-display text-[clamp(2.1rem,3.8vw,3.1rem)] leading-[1.06] font-semibold tracking-tight text-balance"
             >
               Ask your documents. Get answers you can{" "}
               <span className="text-emerald-700 dark:text-emerald-300">cite.</span>
@@ -48,10 +36,10 @@ export function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="mb-8 max-w-xl text-lg leading-relaxed text-muted-foreground"
+              className="mb-8 max-w-xl text-base leading-relaxed text-muted-foreground"
             >
               Upload deeds, contracts, and case files. Ask in plain English
-              and trace every answer back to the exact source — clause,
+              and trace every answer back to the exact source: clause,
               page, and PDF.
             </motion.p>
 
@@ -78,15 +66,6 @@ export function Hero() {
                 <Link href="#features">Learn More</Link>
               </Button>
             </motion.div>
-
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="mt-8 text-sm text-muted-foreground"
-            >
-              No credit card required • Free forever plan
-            </motion.p>
           </motion.div>
 
           <motion.figure
@@ -98,14 +77,11 @@ export function Hero() {
             <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-lg">
               <div className="flex items-center gap-3 border-b border-border px-4 py-3">
                 <div className="flex gap-1.5" aria-hidden="true">
-                  <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                  <span className="size-2.5 rounded-full bg-muted-foreground/25" />
-                  <span className="size-2.5 rounded-full bg-muted-foreground/25" />
+                  <span className="size-2.5 rounded-full bg-[#FF5F57]" />
+                  <span className="size-2.5 rounded-full bg-[#FEBC2E]" />
+                  <span className="size-2.5 rounded-full bg-[#28C840]" />
                 </div>
                 <span className="text-xs font-medium text-muted-foreground">DMS · Chat</span>
-                <span className="ml-auto rounded-full border border-border px-2.5 py-0.5 text-[11px] text-muted-foreground">
-                  Real product screenshot
-                </span>
               </div>
               <Image
                 src="/images/hero-chat-answer.png"
@@ -132,7 +108,7 @@ export function Hero() {
             </div>
 
             <figcaption className="mt-4 text-center text-xs text-muted-foreground">
-              An actual answer from DMS — asked, answered, and cited from the source PDF.
+              An actual answer from DMS: asked, answered, and cited from the source PDF.
             </figcaption>
           </motion.figure>
         </div>
