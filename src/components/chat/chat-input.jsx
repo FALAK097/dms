@@ -137,7 +137,7 @@ export function ChatInput({
           rows={1}
           className={cn(
             "min-h-12 max-h-[200px] min-w-0 resize-none flex-1 rounded-lg border-none bg-transparent text-sm shadow-none sm:text-base",
-            "focus-visible:border-none focus-visible:ring-0 focus-visible:ring-transparent"
+            "focus-visible:ring-2 focus-visible:ring-ring/50"
           )}
           aria-label="Chat message"
         />
