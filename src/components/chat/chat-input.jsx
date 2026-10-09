@@ -119,7 +119,7 @@ export function ChatInput({
 
       <div
         ref={containerRef}
-        className="relative flex items-end gap-2"
+        className="relative flex items-end"
       >
         <Textarea
           ref={textareaRef}
@@ -136,31 +136,29 @@ export function ChatInput({
           disabled={disabled}
           rows={1}
           className={cn(
-            "min-h-12 max-h-[200px] min-w-0 resize-none flex-1 rounded-lg border-none bg-transparent text-sm shadow-none sm:text-base",
+            "min-h-12 max-h-[200px] min-w-0 flex-1 resize-none rounded-lg border-none bg-transparent py-3 pr-14 text-sm shadow-none sm:text-base",
             "focus-visible:ring-2 focus-visible:ring-ring/50"
           )}
           aria-label="Chat message"
         />
-        <div className="flex shrink-0 self-end">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <BaseChatButton
-                  type="submit"
-                  disabled={!value?.trim() || disabled}
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-full"
-                  aria-label="Send message"
-                >
-                  <HugeiconsIcon icon={ArrowUp02Icon} className="h-5 w-5" />
-                </BaseChatButton>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                <p>Send message</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <BaseChatButton
+                type="submit"
+                disabled={!value?.trim() || disabled}
+                size="icon"
+                className="absolute bottom-1.5 right-1.5 size-9 shrink-0 rounded-xl"
+                aria-label="Send message"
+              >
+                <HugeiconsIcon icon={ArrowUp02Icon} className="h-5 w-5" />
+              </BaseChatButton>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              <p>Send message</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <DocumentMentionDropdown
           isOpen={showDropdown}

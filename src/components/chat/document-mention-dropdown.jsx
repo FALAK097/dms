@@ -5,7 +5,6 @@ import { File01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState, useRef } from "react";
 import { documentAPI } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 export function DocumentMentionDropdown({
   isOpen,
@@ -101,7 +100,7 @@ export function DocumentMentionDropdown({
 
   return (
     <div
-      className="absolute z-50 w-full max-w-md bg-popover border rounded-lg shadow-lg overflow-hidden"
+      className="absolute z-50 w-full max-w-md rounded-lg border bg-popover shadow-lg overflow-hidden"
       style={{
         bottom: position?.bottom || "100%",
         left: position?.left || 0,
@@ -117,7 +116,7 @@ export function DocumentMentionDropdown({
             <HugeiconsIcon icon={Loading02Icon} className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : filteredDocuments.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
+          <div className="p-6 text-center text-sm text-muted-foreground">
             {searchQuery
               ? `No documents found matching "${searchQuery}"`
               : "No documents available"}
@@ -131,58 +130,23 @@ export function DocumentMentionDropdown({
                 key={doc.id}
                 onClick={() => onSelect(doc)}
                 className={cn(
-                  "w-full flex items-start gap-3 p-3 rounded-md text-left transition-colors",
+                  "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
                   "hover:bg-accent hover:text-accent-foreground",
                   selectedIndex === index && "bg-accent text-accent-foreground"
                 )}
                 onMouseEnter={() => setSelectedIndex(index)}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-primary/10">
-                  <HugeiconsIcon icon={File01Icon} className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-sm truncate">{doc.name}</p>
-                    {doc.status === "READY" ? (
-                      <Badge
-                        variant="outline"
-                        className="text-xs shrink-0 bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
-                      >
-                        Ready
-                      </Badge>
-                    ) : doc.status === "PROCESSING" ? (
-                      <Badge
-                        variant="outline"
-                        className="text-xs shrink-0 bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                      >
-                        Processing
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {doc.status}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {(doc.size / 1024 / 1024).toFixed(2)} MB • {doc.type}
-                  </p>
-                </div>
+                <HugeiconsIcon
+                  icon={File01Icon}
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                />
+                <span className="truncate">
+                  {doc.name.replace(/\.[^/.]+$/, "")}
+                </span>
               </button>
             ))}
           </div>
         )}
-      </div>
-
-      <div className="p-2 border-t bg-muted/50 text-xs text-muted-foreground">
-        <div className="flex items-center justify-between">
-          <span>↑↓ Navigate • Enter Select • Esc Cancel</span>
-          {searchQuery && (
-            <span className="font-medium">
-              {filteredDocuments.length} result
-              {filteredDocuments.length !== 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
       </div>
     </div>
   );

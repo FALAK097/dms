@@ -8,8 +8,8 @@ import { BaseChatButton } from "./base-chat-button";
 import { cn } from "@/lib/utils";
 
 const feedbackVariants = {
-  1: "text-emerald-600 dark:text-emerald-400",
-  [-1]: "text-red-600 dark:text-red-400",
+  1: "text-emerald-600 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-400",
+  [-1]: "text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400",
 };
 
 export function MessageActions({ message, text }) {
