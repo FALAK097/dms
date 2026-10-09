@@ -107,9 +107,6 @@ export function Hero() {
               Source PDF one click away
             </div>
 
-            <figcaption className="mt-4 text-center text-xs text-muted-foreground">
-              An actual answer from DMS: asked, answered, and cited from the source PDF.
-            </figcaption>
           </motion.figure>
         </div>
       </div>
