@@ -1,237 +1,211 @@
 "use client";
 
-import { Bot, User } from "lucide-react";
-import Link from "next/link";
-import { Streamdown } from "streamdown";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { FileSearchIcon } from "@hugeicons/core-free-icons";
+import { useMemo } from "react";
+import { useDocumentPreview } from "./document-preview";
+import { BaseChatButton } from "./base-chat-button";
+import { remarkCitations, verifiedCitationSource } from "@/lib/chat-citations";
+import { Streamdown, defaultRemarkPlugins } from "streamdown";
 import { cn } from "@/lib/utils";
+import { MessageActions } from "@/components/chat/message-actions";
+import { DocumentResultRenderer } from "@/components/chat/document-result-renderer";
 
-export function MessageBubble({ message, isStreaming = false }) {
-  const isUser = message.role === "user";
-
-  const sources = message.metadata?.sources || [];
-
-  const hasToolResults = message.parts?.some(
-    (part) =>
-      part.type &&
-      part.type.startsWith("tool-") &&
-      part.state === "output-available"
+function ToolProgress({ label, failed = false }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-xs",
+        failed
+          ? "border-destructive/25 bg-destructive/5 text-destructive"
+          : "bg-background/80 text-muted-foreground"
+      )}
+      role="status"
+    >
+      <HugeiconsIcon icon={FileSearchIcon} className="size-3.5" aria-hidden="true" />
+      {label}
+    </div>
   );
+}
 
-  const textParts = (message.parts || [])
+function TotalDocumentsResult({ output }) {
+  const count = Number.isFinite(output.totalCount) ? output.totalCount : 0;
+  return (
+    <DocumentResultRenderer
+      title={`${count} document${count === 1 ? "" : "s"} in your library`}
+      documents={Array.isArray(output.documents) ? output.documents : []}
+      totalCount={count}
+    />
+  );
+}
+
+function NamedDocumentResults({ output }) {
+  const documents = Array.isArray(output.documents) ? output.documents : [];
+  if (!documents.length) {
+    return <p className="text-sm text-muted-foreground">{output.message || "No matching documents found."}</p>;
+  }
+
+  return (
+    <DocumentResultRenderer
+      title="Matching documents"
+      documents={documents}
+      totalCount={Number.isFinite(output.totalCount) ? output.totalCount : documents.length}
+    />
+  );
+}
+
+function ToolResult({ part }) {
+  if (part.state === "input-streaming" || part.state === "input-available") {
+    const label = part.type === "tool-total_documents" ? "Finding your documents" : "Searching document names";
+    return <ToolProgress label={label} />;
+  }
+  if (part.state === "output-error") {
+    return <ToolProgress label="Couldn’t complete the document search" failed />;
+  }
+  if (part.state !== "output-available" || !part.output || typeof part.output !== "object") {
+    return null;
+  }
+
+  switch (part.type) {
+    case "tool-total_documents":
+      return <TotalDocumentsResult output={part.output} />;
+    case "tool-find_document_by_name":
+      return <NamedDocumentResults output={part.output} />;
+    default:
+      return null;
+  }
+}
+
+function MessageText({ isUser, message, textParts, isStreaming }) {
+  const openSource = useDocumentPreview();
+  const remarkPlugins = useMemo(() => [...Object.values(defaultRemarkPlugins), [remarkCitations, { citations: (message.metadata?.sources || []).map((source) => source.citation).filter(Boolean) }]], [message]);
+  const components = useMemo(() => ({
+    a: ({ href, title, children }) => {
+      const match = href?.match(/^#dms-citation-(\d+)$/);
+      const source = match && (message.metadata?.sources || []).find((item) => item.citation === Number(match[1]));
+      if (source && openSource) return <BaseChatButton variant="ghost" className="mx-0.5 inline-flex h-6 min-w-6 rounded-md bg-muted px-1.5 py-0 align-baseline text-xs tabular-nums" aria-label={`Source ${source.citation}: ${source.documentName}`} title={source.documentName} onClick={() => openSource(verifiedCitationSource(source, title))}>{children}</BaseChatButton>;
+      return <a href={href} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">{children}</a>;
+    },
+  }), [message, openSource]);
+  const content = textParts || (!message.parts?.length ? message.content : "");
+  if (!content) return null;
+  if (isUser) return <div className="whitespace-pre-wrap">{content}</div>;
+
+  return (
+    <Streamdown
+      remarkPlugins={remarkPlugins}
+      components={components}
+      animated={{ animation: "blurIn", duration: 160, easing: "ease-out" }}
+      isAnimating={isStreaming}
+    >
+      {content}
+    </Streamdown>
+  );
+}
+
+function ToolResults({ parts = [] }) {
+  return parts.map((part) =>
+    part.type?.startsWith("tool-") && part.toolCallId
+      ? <ToolResult key={part.toolCallId} part={part} />
+      : null
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <span className="inline-flex items-center gap-1 py-1" role="status" aria-label="Preparing answer">
+      <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+      <span className="size-1.5 animate-pulse rounded-full bg-primary [animation-delay:150ms]" />
+      <span className="size-1.5 animate-pulse rounded-full bg-primary [animation-delay:300ms]" />
+    </span>
+  );
+}
+
+function SourceLinks({ sources }) {
+  const openSource = useDocumentPreview();
+  return (
+    <div className="mt-3 border-t pt-2.5">
+      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        {sources.length === 1 ? "Source" : "Sources"}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {sources.map((source) => {
+          const label = source?.documentName?.replace(/\.[^/.]+$/, "") || "View document";
+          return source?.documentId ? (
+            <BaseChatButton
+              variant="ghost"
+              key={source.citation || source.documentId}
+              onClick={() => openSource?.(source)}
+              className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg border bg-background px-2.5 text-xs text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {source.citation && <span className="text-muted-foreground">{source.citation}</span>}
+              <span className="truncate">{label}</span>
+            </BaseChatButton>
+          ) : (
+            <span key={source.documentName || label} className="text-xs text-muted-foreground">{label}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function getMessageView(message, isStreaming) {
+  const isUser = message.role === "user";
+  const sources = Array.from(new Map((message.metadata?.sources || []).map((source) => [
+    source?.citation || source?.documentId || source?.documentName || JSON.stringify(source),
+    source,
+  ])).values());
+  const parts = message.parts || [];
+  const textParts = parts
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("");
-
-  const hasTextContent = textParts.length > 0;
-
-  const renderMessageContent = () => {
-    if (!message.parts || message.parts.length === 0) {
-      return (
-        <Streamdown animated={isStreaming && !isUser}>
-          {message.content || ""}
-        </Streamdown>
-      );
-    }
-
-    return message.parts.map((part, index) => {
-      switch (part.type) {
-        case "text":
-          return null;
-
-        case "tool-total_documents": {
-          const callId = part.toolCallId;
-
-          switch (part.state) {
-            case "input-streaming":
-              return (
-                <div
-                  key={callId}
-                  className="text-sm text-muted-foreground italic"
-                >
-                  Preparing to fetch documents...
-                </div>
-              );
-            case "input-available":
-              return (
-                <div
-                  key={callId}
-                  className="text-sm text-muted-foreground italic"
-                >
-                  Fetching total documents...
-                </div>
-              );
-            case "output-available": {
-              const output = part.output;
-              if (
-                output &&
-                typeof output === "object" &&
-                output.totalCount !== undefined
-              ) {
-                return (
-                  <div key={callId} className="space-y-2">
-                    <p className="m-0">
-                      You have {output.totalCount} document
-                      {output.totalCount !== 1 ? "s" : ""}:
-                    </p>
-                    {output.documents && output.documents.length > 0 && (
-                      <ul className="space-y-1">
-                        {output.documents.map((doc) => {
-                          const displayName = doc.name.replace(/\.[^/.]+$/, "");
-                          return (
-                            <li key={doc.id} className="text-sm">
-                              <Link
-                                href={`/dashboard/document?documentId=${doc.id}`}
-                                target="_blank"
-                                className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                              >
-                                {displayName}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                );
-              }
-            }
-          }
-          break;
-        }
-
-        case "tool-find_document_by_name": {
-          const callId = part.toolCallId;
-
-          switch (part.state) {
-            case "input-streaming":
-            case "input-available":
-              return (
-                <div
-                  key={callId}
-                  className="text-sm text-muted-foreground italic"
-                >
-                  Searching for document...
-                </div>
-              );
-            case "output-available": {
-              const output = part.output;
-              if (output && typeof output === "object") {
-                return (
-                  <div key={callId} className="space-y-2">
-                    <p className="m-0">{output.message}</p>
-                    {output.found &&
-                      output.documents &&
-                      output.documents.length > 0 && (
-                        <ul className="space-y-1 mt-2">
-                          {output.documents.map((doc) => {
-                            const displayName = doc.name.replace(
-                              /\.[^/.]+$/,
-                              ""
-                            );
-                            return (
-                              <li key={doc.id} className="text-sm">
-                                <Link
-                                  href={`/dashboard/document?documentId=${doc.id}`}
-                                  target="_blank"
-                                  className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                                >
-                                  {displayName}
-                                </Link>
-                                {doc.status && (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    ({doc.status})
-                                  </span>
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                  </div>
-                );
-              }
-            }
-          }
-          break;
-        }
-      }
-    });
+  const hasToolResults = parts.some(
+    (part) => part.type?.startsWith("tool-") && part.state === "output-available"
+  );
+  const hasToolParts = parts.some((part) => part.type?.startsWith("tool-"));
+  return {
+    isUser,
+    message,
+    parts,
+    sources,
+    textParts,
+    isStreaming,
+    hasToolResults,
+    showTyping: isStreaming && !isUser && !textParts && !hasToolParts,
   };
+}
 
+function AssistantMessage({ view }) {
   return (
-    <div className={cn("flex gap-3", isUser ? "justify-end" : "justify-start")}>
-      {!isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary">
-          <Bot className="h-5 w-5 text-primary-foreground" />
+    <article className="min-w-0">
+      <div className="w-full min-w-0">
+        <div className="min-w-0 break-words text-sm leading-7 sm:text-[15px]">
+          <MessageText message={view.message} textParts={view.textParts} isStreaming={view.isStreaming} />
+          <ToolResults parts={view.parts} />
+          {view.showTyping && <TypingIndicator />}
         </div>
-      )}
-
-      <div
-        className={cn(
-          "flex flex-col gap-2 rounded-lg px-4 py-3 max-w-[85%] md:max-w-[75%]",
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
-        )}
-      >
-        <div className="max-w-none break-words">
-          {hasTextContent && (
-            <Streamdown animated={isStreaming && !isUser}>
-              {textParts}
-            </Streamdown>
-          )}
-          {renderMessageContent()}
-          {isStreaming && !isUser && !hasTextContent && (
-            <span className="inline-flex items-center gap-1 ml-1">
-              <span
-                className="inline-block w-2 h-2 bg-current rounded-full animate-pulse"
-                style={{ animationDelay: "0ms" }}
-              />
-              <span
-                className="inline-block w-2 h-2 bg-current rounded-full animate-pulse"
-                style={{ animationDelay: "150ms" }}
-              />
-              <span
-                className="inline-block w-2 h-2 bg-current rounded-full animate-pulse"
-                style={{ animationDelay: "300ms" }}
-              />
-            </span>
-          )}
-        </div>
-
-        {!isUser && sources.length > 0 && !hasToolResults && (
-          <div className="mt-2 pt-2 border-t border-border/50">
-            <div className="text-xs text-muted-foreground mb-1">
-              {sources.length === 1 ? "Source:" : "Sources:"}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {sources.map((source, index) =>
-                source?.documentId ? (
-                  <Link
-                    key={`${source.documentId}-${index}`}
-                    href={`/dashboard/document?documentId=${source.documentId}`}
-                    target="_blank"
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                  >
-                    {source.documentName?.replace(/\.[^/.]+$/, "") ||
-                      "View Document"}
-                  </Link>
-                ) : (
-                  <span key={index} className="text-xs text-muted-foreground">
-                    {source.documentName?.replace(/\.[^/.]+$/, "") || "Unknown"}
-                  </span>
-                )
-              )}
-            </div>
-          </div>
-        )}
+        {view.sources.length > 0 && <SourceLinks sources={view.sources} />}
+        {view.textParts && !view.isStreaming && <MessageActions message={view.message} text={view.textParts} />}
       </div>
+    </article>
+  );
+}
 
-      {isUser && (
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-          <User className="h-5 w-5" />
-        </div>
-      )}
-    </div>
+function UserMessage({ view }) {
+  return (
+    <article className="flex min-w-0 justify-end">
+      <div className="max-w-[88%] min-w-0 break-words rounded-2xl rounded-br-md bg-muted px-3.5 py-2.5 text-sm leading-7 sm:max-w-[78%] sm:px-4 sm:text-[15px]">
+        <MessageText isUser message={view.message} textParts={view.textParts} />
+      </div>
+    </article>
+  );
+}
+
+export function MessageBubble({ message, isStreaming = false }) {
+  const view = getMessageView(message, isStreaming);
+  return (
+    view.isUser ? <UserMessage view={view} /> : <AssistantMessage view={view} />
   );
 }

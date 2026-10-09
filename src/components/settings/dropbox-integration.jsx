@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Folder01Icon, Loading02Icon, MoreVerticalIcon, Refresh01Icon, Unlink01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
 import { DropboxSignInButton } from "@/components/auth/dropbox-sign-in-button";
 import { getLinkedAccounts, unlinkDropboxAccount } from "@/lib/auth-client";
@@ -14,14 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  CheckCircle2,
-  Loader2,
-  RefreshCw,
-  MoreVertical,
-  Folder,
-  Unlink,
-} from "lucide-react";
 import { formatLastSynced } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -178,7 +172,7 @@ export const DropboxIntegration = ({ user }) => {
               variant="secondary"
               className="shrink-0 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
             >
-              <CheckCircle2 className="mr-1 h-3 w-3" />
+              <HugeiconsIcon icon={CheckmarkCircle02Icon} className="mr-1 h-3 w-3" />
               Active
             </Badge>
           )}
@@ -187,7 +181,7 @@ export const DropboxIntegration = ({ user }) => {
       <CardContent>
         {loading ? (
           <div className="flex items-center justify-center p-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <HugeiconsIcon icon={Loading02Icon} className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <>
@@ -241,7 +235,7 @@ export const DropboxIntegration = ({ user }) => {
                           size="icon"
                           className="h-8 w-8 shrink-0"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <HugeiconsIcon icon={MoreVerticalIcon} className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
@@ -251,12 +245,12 @@ export const DropboxIntegration = ({ user }) => {
                         >
                           {syncing ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                               Syncing...
                             </>
                           ) : (
                             <>
-                              <RefreshCw className="mr-2 h-4 w-4" />
+                              <HugeiconsIcon icon={Refresh01Icon} className="mr-2 h-4 w-4" />
                               Sync Now
                             </>
                           )}
@@ -267,12 +261,12 @@ export const DropboxIntegration = ({ user }) => {
                         >
                           {selectingFolder ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                               Selecting...
                             </>
                           ) : (
                             <>
-                              <Folder className="mr-2 h-4 w-4" />
+                              <HugeiconsIcon icon={Folder01Icon} className="mr-2 h-4 w-4" />
                               Change Folder
                             </>
                           )}
@@ -284,12 +278,12 @@ export const DropboxIntegration = ({ user }) => {
                         >
                           {disconnecting ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                               Disconnecting...
                             </>
                           ) : (
                             <>
-                              <Unlink className="mr-2 h-4 w-4" />
+                              <HugeiconsIcon icon={Unlink01Icon} className="mr-2 h-4 w-4" />
                               Disconnect
                             </>
                           )}
@@ -318,7 +312,7 @@ export const DropboxIntegration = ({ user }) => {
                         >
                           {selectingFolder ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                               Selecting
                             </>
                           ) : (
@@ -334,7 +328,7 @@ export const DropboxIntegration = ({ user }) => {
                         >
                           {disconnecting ? (
                             <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                               Disconnect
                             </>
                           ) : (
@@ -403,7 +397,7 @@ export const DropboxIntegration = ({ user }) => {
                       >
                         {selectingFolder ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                             Selecting...
                           </>
                         ) : (
@@ -418,7 +412,7 @@ export const DropboxIntegration = ({ user }) => {
                       >
                         {disconnecting ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                             Disconnecting...
                           </>
                         ) : (
@@ -436,12 +430,12 @@ export const DropboxIntegration = ({ user }) => {
                       >
                         {syncing ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                             Syncing...
                           </>
                         ) : (
                           <>
-                            <RefreshCw className="mr-2 h-4 w-4" />
+                            <HugeiconsIcon icon={Refresh01Icon} className="mr-2 h-4 w-4" />
                             Sync Now
                           </>
                         )}
@@ -454,7 +448,7 @@ export const DropboxIntegration = ({ user }) => {
                       >
                         {selectingFolder ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                             Selecting...
                           </>
                         ) : (
@@ -469,7 +463,7 @@ export const DropboxIntegration = ({ user }) => {
                       >
                         {disconnecting ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <HugeiconsIcon icon={Loading02Icon} className="mr-2 h-4 w-4 animate-spin" />
                             Disconnecting...
                           </>
                         ) : (

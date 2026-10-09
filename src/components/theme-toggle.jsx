@@ -1,8 +1,8 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { MoonIcon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -10,20 +10,17 @@ import {
 } from "@/components/ui/tooltip";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useMounted } from "@/hooks/use-mounted";
 
 export const ThemeToggle = ({ compact = false }) => {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const mounted = useMounted();
   const { state } = useSidebar();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!mounted) return null;
 
-  const isDark = theme === "dark";
-  const Icon = isDark ? Sun : Moon;
+  const isDark = resolvedTheme === "dark";
+  const Icon = isDark ? Sun01Icon : MoonIcon;
   const label = isDark ? "Light Mode" : "Dark Mode";
 
   if (compact) {
@@ -33,8 +30,9 @@ export const ThemeToggle = ({ compact = false }) => {
         size="icon"
         className="h-8 w-8"
         onClick={() => setTheme(isDark ? "light" : "dark")}
+        aria-label={label}
       >
-        <Icon className="h-4 w-4" />
+        <HugeiconsIcon icon={Icon} className="h-4 w-4" />
         <span className="sr-only">{label}</span>
       </Button>
     );
@@ -44,9 +42,11 @@ export const ThemeToggle = ({ compact = false }) => {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="text-sidebar-foreground hover:text-sidebar-accent-foreground w-full flex items-center justify-center gap-2 text-sm py-3 border-t group-data-[state=collapsed]:border-0 group-data-[state=collapsed]:justify-start group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:py-2"
+      aria-label={label}
+      className="flex w-full items-center justify-start gap-2 rounded-md px-2 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]/sidebar-wrapper:justify-center"
     >
-      <Icon size={18} />
+      <HugeiconsIcon icon={Icon} size={18} />
+      <span className="group-data-[collapsible=icon]/sidebar-wrapper:sr-only">{label}</span>
     </button>
   );
 

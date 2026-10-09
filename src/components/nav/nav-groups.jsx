@@ -1,6 +1,6 @@
 "use client";
-
-import { Folder, Forward, MoreHorizontal, Trash2 } from "lucide-react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon, Folder01Icon, Forward01Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 
 import {
@@ -31,14 +31,14 @@ export function NavGroups({ groups }) {
           <SidebarMenuItem key={item.name}>
             <SidebarMenuButton asChild>
               <Link href={item.url}>
-                <item.icon />
+                <HugeiconsIcon icon={item.icon} />
                 <span>{item.name}</span>
               </Link>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuAction showOnHover>
-                  <MoreHorizontal />
+                  <HugeiconsIcon icon={MoreHorizontalIcon} />
                   <span className="sr-only">More</span>
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
@@ -48,16 +48,16 @@ export function NavGroups({ groups }) {
                 align={isMobile ? "end" : "start"}
               >
                 <DropdownMenuItem>
-                  <Folder className="text-muted-foreground" />
+                  <HugeiconsIcon icon={Folder01Icon} className="text-muted-foreground" />
                   <span>View group</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <Forward className="text-muted-foreground" />
+                  <HugeiconsIcon icon={Forward01Icon} className="text-muted-foreground" />
                   <span>Share group</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <Trash2 className="text-muted-foreground" />
+                  <HugeiconsIcon icon={Delete02Icon} className="text-muted-foreground" />
                   <span>Delete group</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

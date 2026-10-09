@@ -1,6 +1,6 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
 export const metadata = {
   title: "Privacy Policy",
   description:
@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
           href="/"
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} className="h-4 w-4" />
           <span className="text-sm">Back</span>
         </Link>
 

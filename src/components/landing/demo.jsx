@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlayIcon } from "@hugeicons/core-free-icons";
 import { Card } from "@/components/ui/card";
 import { motion } from "motion/react";
-import { Play } from "lucide-react";
 
 export function Demo() {
   return (
@@ -28,7 +29,7 @@ export function Demo() {
             <div className="flex h-full w-full items-center justify-center">
               <div className="text-center">
                 <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Play className="h-8 w-8 text-primary" />
+                  <HugeiconsIcon icon={PlayIcon} className="h-8 w-8 text-primary" />
                 </div>
                 <p className="text-muted-foreground">Demo video coming soon</p>
               </div>

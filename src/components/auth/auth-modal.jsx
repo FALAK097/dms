@@ -1,5 +1,7 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading02Icon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -21,13 +22,18 @@ export function AuthModal({ open, onOpenChange }) {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      await authClient.signIn.social({
+      const { error } = await authClient.signIn.social({
         provider: "google",
         callbackURL: "/dashboard",
       });
+      if (error) {
+        console.error("Google sign-in error:", error);
+        toast.error("Google sign-in is temporarily unavailable. Please try again later.");
+      }
     } catch (err) {
       console.error("Google sign-in error:", err);
       toast.error("Google authentication failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
@@ -49,7 +55,7 @@ export function AuthModal({ open, onOpenChange }) {
             disabled={loading}
           >
             {loading ? (
-              <Loader2 className="size-5 animate-spin" />
+              <HugeiconsIcon icon={Loading02Icon} className="size-5 animate-spin" />
             ) : (
               <Image
                 src="/images/google.svg"

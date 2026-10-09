@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { LayoutDashboard, Settings } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { DashboardCircleIcon, Settings01Icon } from "@hugeicons/core-free-icons";
 
 import { NavMain } from "./nav-main";
 import { NavGroups } from "./nav-groups";
@@ -29,19 +30,28 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: LayoutDashboard,
+      icon: DashboardCircleIcon,
       isActive: true,
     },
     {
       title: "Settings",
       url: "/settings",
-      icon: Settings,
+      icon: Settings01Icon,
     },
   ],
   groups: [],
 };
 
 export function AppSidebar({ children, ...props }) {
+  const pathname = usePathname();
+  const currentPage = pathname.startsWith("/settings")
+    ? "Settings"
+    : pathname.startsWith("/chat")
+      ? "Chat"
+      : pathname.startsWith("/dashboard/document")
+        ? "Document"
+        : "My Documents";
+
   return (
     <>
       <Sidebar collapsible="icon" {...props}>
@@ -68,7 +78,7 @@ export function AppSidebar({ children, ...props }) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Dashboard</BreadcrumbPage>
+                    <BreadcrumbPage>{currentPage}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

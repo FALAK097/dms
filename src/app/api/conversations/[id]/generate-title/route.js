@@ -39,6 +39,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (conversation.title !== "New Chat") return NextResponse.json({ title: conversation.title });
+
     if (conversation.messages.length < 2) {
       return NextResponse.json(
         { error: "Not enough messages to generate title" },
@@ -68,14 +70,14 @@ Title:`;
     const { text } = await generateText({
       model: titleModel,
       prompt: prompt,
-      maxTokens: 30,
+      maxOutputTokens: 30,
       temperature: 0.7,
     });
 
-    const title = text.trim().replace(/^["']|["']$/g, "");
+    const title = text.trim().replace(/^["']|["']$/g, "").slice(0, 120) || "New Chat";
 
-    await prisma.conversation.update({
-      where: { id },
+    await prisma.conversation.updateMany({
+      where: { id, userId: session.user.id, title: "New Chat" },
       data: { title },
     });
 

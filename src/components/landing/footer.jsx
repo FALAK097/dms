@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { GithubIcon, TwitterIcon } from "@hugeicons/core-free-icons";
 import Link from "next/link";
 import Image from "next/image";
-import { Github, Twitter } from "lucide-react";
 
 export function Footer() {
   return (
@@ -34,7 +35,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Github className="h-5 w-5" />
+                <HugeiconsIcon icon={GithubIcon} className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Link>
               <Link
@@ -43,7 +44,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="text-muted-foreground transition-colors hover:text-foreground"
               >
-                <Twitter className="h-5 w-5" />
+                <HugeiconsIcon icon={TwitterIcon} className="h-5 w-5" />
                 <span className="sr-only">Twitter/X</span>
               </Link>
             </div>

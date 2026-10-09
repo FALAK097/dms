@@ -1,7 +1,8 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { CheckmarkCircle01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState } from "react";
-import { Loader2, CheckCircle } from "lucide-react";
 import { documentAPI } from "@/lib/api";
 
 export function UploadQueueStatus() {
@@ -36,7 +37,7 @@ export function UploadQueueStatus() {
     <div className="fixed bottom-4 right-4 z-50 max-w-sm">
       <div className="rounded-lg border bg-card p-4 shadow-lg space-y-3">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-primary shrink-0" />
+          <HugeiconsIcon icon={Loading02Icon} className="h-5 w-5 animate-spin text-primary shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium">Background Upload in Progress</p>
             <p className="text-xs text-muted-foreground">
@@ -47,7 +48,7 @@ export function UploadQueueStatus() {
         </div>
         <div className="p-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 rounded">
           <div className="flex items-start gap-2 text-xs text-emerald-800 dark:text-emerald-200">
-            <CheckCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <HugeiconsIcon icon={CheckmarkCircle01Icon} className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <div>
               <strong className="block">Safe to refresh!</strong>
               <span className="text-emerald-700 dark:text-emerald-300">

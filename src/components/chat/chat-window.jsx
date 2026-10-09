@@ -1,143 +1,160 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon, Loading02Icon } from "@hugeicons/core-free-icons";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { MessageBubble } from "@/components/chat/message-bubble";
+import { DocumentPreviewLayout } from "@/components/chat/document-preview";
+import { ChatMessageList } from "@/components/chat/chat-message-list";
+import { ChatFeedback } from "@/components/chat/chat-feedback";
 import { ChatInput } from "@/components/chat/chat-input";
 import { conversationAPI } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { useChatStore } from "@/stores/chat-store";
 
+function formatConversationMessages(conversation) {
+  return conversation.messages.map((message) => {
+    const sources = message.sources
+      ? typeof message.sources === "string"
+        ? JSON.parse(message.sources)
+        : message.sources
+      : undefined;
+
+    return {
+      id: message.id,
+      role: message.role.toLowerCase(),
+      parts: message.parts?.length ? message.parts : [{ type: "text", text: message.content }],
+      metadata: { sources: sources || [], messageId: message.id, feedback: message.feedback },
+    };
+  });
+}
+
 export function ChatWindow() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const conversationIdFromUrl = searchParams.get("conversationId");
+  const conversationId = searchParams.get("conversationId");
+  const draftVersion = useChatStore((state) => state.draftVersion);
+  return <DocumentPreviewLayout key={conversationId || `draft-${draftVersion}`}><ConversationChat activeConversationId={conversationId} /></DocumentPreviewLayout>;
+}
+
+function ConversationChat({ activeConversationId }) {
+  const router = useRouter();
   const scrollRef = useRef(null);
+  const shouldFollowRef = useRef(true);
   const [input, setInput] = useState("");
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [loadedConversationId, setLoadedConversationId] = useState(null);
+  const [historyRetry, setHistoryRetry] = useState(0);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [showScrollToLatest, setShowScrollToLatest] = useState(false);
+  const [historyFailureKey, setHistoryFailureKey] = useState(null);
 
-  const {
-    currentConversationId,
-    setCurrentConversation,
-    clearCurrentConversation,
-  } = useChatStore();
-
-  const activeConversationId = conversationIdFromUrl || currentConversationId;
+  const mountedRef = useRef(false);
+  const requestBodyRef = useRef(null);
+  const preparationAttemptRef = useRef(0);
+  const [preparing, setPreparing] = useState(false);
+  const [preparationError, setPreparationError] = useState(null);
+  const historyRequestKey = `${activeConversationId || ""}:${historyRetry}`;
+  const historyError = Boolean(activeConversationId && historyFailureKey === historyRequestKey);
+  const loadingHistory = Boolean(activeConversationId && loadedConversationId !== activeConversationId && !historyError);
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: "/api/chat" }),
+    []
+  );
 
   const conversationIdRef = useRef(activeConversationId);
 
-  useEffect(() => {
-    conversationIdRef.current = activeConversationId;
-  }, [activeConversationId]);
-
-  const { messages, isLoading, sendMessage, setMessages } = useChat({
-    api: "/api/chat",
-    onFinish: async ({ message }) => {
-      if (!conversationIdRef.current && message.metadata?.conversationId) {
-        const newConvId = message.metadata.conversationId;
-        setCurrentConversation(newConvId);
-        router.replace(`/chat?conversationId=${newConvId}`, { scroll: false });
-
-        setTimeout(() => {
-          const { triggerConversationRefresh } = useChatStore.getState();
-          triggerConversationRefresh();
-        }, 2000);
-      }
+  const {
+    messages,
+    status,
+    error,
+    sendMessage,
+    setMessages,
+    stop,
+    regenerate,
+    clearError,
+  } = useChat({
+    transport,
+    onFinish: ({ message, isAbort, isError }) => {
+      if (!mountedRef.current || isAbort || isError) return;
+      const id = message.metadata?.conversationId || conversationIdRef.current;
+      if (!id) return;
+      useChatStore.getState().triggerConversationRefresh();
+      if (!activeConversationId) router.replace(`/chat?conversationId=${id}`, { scroll: false });
     },
   });
+  const isStreaming = preparing || status === "submitted" || status === "streaming";
 
   useEffect(() => {
-    if (
-      conversationIdFromUrl &&
-      conversationIdFromUrl !== currentConversationId
-    ) {
-      setCurrentConversation(conversationIdFromUrl);
-      setHistoryLoaded(false);
-    } else if (!conversationIdFromUrl && currentConversationId) {
-      clearCurrentConversation();
-      setHistoryLoaded(false);
-    } else if (!conversationIdFromUrl && !currentConversationId) {
-      setHistoryLoaded(false);
-    }
-  }, [
-    conversationIdFromUrl,
-    currentConversationId,
-    setCurrentConversation,
-    clearCurrentConversation,
-  ]);
-
-  useEffect(() => {
-    const loadConversation = async () => {
-      if (!activeConversationId) {
-        setMessages([]);
-        setHistoryLoaded(true);
-        setLoadingHistory(false);
-        return;
-      }
-
-      if (historyLoaded) {
-        return;
-      }
-
-      setLoadingHistory(true);
-      try {
-        const { conversation } = await conversationAPI.getById(
-          activeConversationId
-        );
-
-        const formattedMessages = conversation.messages.map((msg) => {
-          let sources;
-          if (msg.sources) {
-            sources =
-              typeof msg.sources === "string"
-                ? JSON.parse(msg.sources)
-                : msg.sources;
-          }
-
-          return {
-            id: msg.id,
-            role: msg.role.toLowerCase(),
-            parts: [{ type: "text", text: msg.content }],
-            metadata: sources ? { sources } : undefined,
-          };
-        });
-
-        setMessages(formattedMessages);
-        setHistoryLoaded(true);
-      } catch (error) {
-        console.error("Error loading conversation:", error);
-        setMessages([]);
-      } finally {
-        setLoadingHistory(false);
-      }
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      stop();
     };
+  }, [stop]);
 
-    loadConversation();
-  }, [activeConversationId, historyLoaded, setMessages]);
+  useEffect(() => {
+    let ignore = false;
+    if (!activeConversationId) {
+      // The URL/store identifies the conversation; clearing the chat hook's
+      // state here prevents a previous conversation flashing in a new chat.
+      setMessages([]);
+      return () => {
+        ignore = true;
+      };
+    }
+
+    conversationAPI
+      .getById(activeConversationId)
+      .then(({ conversation }) => {
+        if (ignore) return;
+        setMessages(formatConversationMessages(conversation));
+        setLoadedConversationId(activeConversationId);
+      })
+      .catch((error) => {
+        if (ignore) return;
+        console.error("Error loading conversation:", error);
+        // Never leave a different conversation visible after this one fails.
+        setMessages([]);
+        setHistoryFailureKey(historyRequestKey);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [activeConversationId, historyRequestKey, setMessages]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!input.trim() || isLoading) {
+    if (!input.trim() || isStreaming) {
       return;
     }
 
     const userMessage = input.trim();
-    setInput("");
-
-    await sendMessage(
-      { text: userMessage },
-      {
-        body: {
-          conversationId: conversationIdRef.current,
-          documentId: selectedDocument?.id || null,
-        },
+    const attempt = ++preparationAttemptRef.current;
+    setPreparing(true);
+    setPreparationError(null);
+    try {
+      if (!conversationIdRef.current) {
+        const { conversation } = await conversationAPI.create();
+        if (!mountedRef.current || preparationAttemptRef.current !== attempt) return;
+        conversationIdRef.current = conversation.id;
       }
-    );
+      const body = {
+        conversationId: conversationIdRef.current,
+        documentId: selectedDocument?.id || null,
+      };
+      requestBodyRef.current = body;
+      setInput("");
+      shouldFollowRef.current = true;
+      await sendMessage({ text: userMessage }, { body });
+    } catch {
+      if (mountedRef.current) setPreparationError("Could not start the conversation. Please try again.");
+    } finally {
+      if (mountedRef.current && preparationAttemptRef.current === attempt) setPreparing(false);
+    }
   };
 
   const handleDocumentSelect = (doc) => {
@@ -148,62 +165,114 @@ export function ChatWindow() {
     setInput(e.target.value);
   };
 
-  const scrollToBottom = () => {
+  const getScrollViewport = useCallback(() => {
     if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]"
-      );
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+      return scrollRef.current.querySelector('[data-slot="scroll-area-viewport"]');
     }
-  };
+    return null;
+  }, []);
+
+  const scrollToLatest = useCallback((behavior = "smooth") => {
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+    shouldFollowRef.current = true;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+    setShowScrollToLatest(false);
+  }, [getScrollViewport]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const viewport = getScrollViewport();
+    if (!viewport) return;
+
+    const updateScrollState = () => {
+      const distanceFromBottom =
+        viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+      shouldFollowRef.current = distanceFromBottom <= 96;
+      setShowScrollToLatest(distanceFromBottom > 96);
+    };
+
+    viewport.addEventListener("scroll", updateScrollState, { passive: true });
+    updateScrollState();
+    return () => viewport.removeEventListener("scroll", updateScrollState);
+  }, [getScrollViewport, loadingHistory]);
+
+  useEffect(() => {
+    const viewport = getScrollViewport();
+    const content = viewport?.firstElementChild;
+    if (!viewport || !content || typeof ResizeObserver === "undefined") return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (shouldFollowRef.current) {
+        viewport.scrollTop = viewport.scrollHeight;
+      } else {
+        const distanceFromBottom =
+          viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+        setShowScrollToLatest(distanceFromBottom > 96);
+      }
+    });
+    resizeObserver.observe(content);
+    return () => resizeObserver.disconnect();
+  }, [getScrollViewport, loadingHistory]);
 
   if (loadingHistory) {
     return (
-      <div className="flex h-[calc(95vh-4rem)] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex h-full min-h-0 items-center justify-center rounded-xl border bg-background text-sm text-muted-foreground">
+        <HugeiconsIcon icon={Loading02Icon} className="mr-2 size-4 animate-spin text-primary" />
+        Loading conversation…
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(95vh-4rem)] flex-col">
-      <ScrollArea ref={scrollRef} className="flex-1 px-4">
-        <div className="mx-auto max-w-3xl space-y-4 py-4">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <h2 className="text-2xl font-semibold mb-2">
-                Start a conversation
-              </h2>
-              <p className="text-muted-foreground">
-                Ask me anything about your documents
-              </p>
-            </div>
-          )}
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isStreaming={
-                isLoading && message.id === messages[messages.length - 1]?.id
-              }
-            />
-          ))}
-        </div>
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm">
+      <ScrollArea ref={scrollRef} className="min-h-0 flex-1 px-3 sm:px-5">
+        <ChatMessageList
+          messages={messages}
+          isStreaming={isStreaming}
+          onSuggest={(question) => {
+            setInput(question);
+            document.querySelector('[aria-label="Chat message"]')?.focus();
+          }}
+        />
       </ScrollArea>
 
-      <div className="p-4">
+      {showScrollToLatest && messages.length > 0 && (
+        <BaseChatButton
+          type="button"
+          variant="outline"
+          size="sm"
+          className="absolute bottom-28 left-1/2 z-10 -translate-x-1/2 rounded-full bg-background/95 shadow-md backdrop-blur"
+          onClick={() => scrollToLatest("smooth")}
+        >
+          <HugeiconsIcon icon={ArrowDown01Icon} className="size-3.5" />
+          Latest response
+        </BaseChatButton>
+      )}
+
+      <div className="border-t bg-background/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:p-4">
         <div className="mx-auto max-w-3xl">
+          <ChatFeedback
+            historyError={historyError}
+            onHistoryRetry={() => setHistoryRetry((attempt) => attempt + 1)}
+            isStreaming={isStreaming}
+            status={status}
+            onStop={() => {
+              preparationAttemptRef.current += 1;
+              setPreparing(false);
+              stop();
+            }}
+            error={error}
+            onRetry={() => {
+              clearError();
+              if (requestBodyRef.current) regenerate({ body: requestBodyRef.current });
+            }}
+          />
+          {preparationError && <p role="alert" className="mb-2 text-sm text-destructive">{preparationError}</p>}
           <form onSubmit={handleSubmit}>
             <ChatInput
               value={input}
               onChange={handleInputChange}
-              disabled={isLoading}
+              disabled={isStreaming}
               selectedDocument={selectedDocument}
               onDocumentSelect={handleDocumentSelect}
             />

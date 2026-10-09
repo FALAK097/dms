@@ -122,6 +122,8 @@ model Message {
   role           MessageRole
   content        String       @db.Text
   sources        Json?
+  parts          Json?
+  feedback       Int?
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])

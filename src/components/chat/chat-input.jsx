@@ -1,8 +1,9 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Cancel01Icon, SentIcon } from "@hugeicons/core-free-icons";
 import { useRef, useEffect, useState } from "react";
-import { Send, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DocumentMentionDropdown } from "./document-mention-dropdown";
@@ -91,16 +92,6 @@ export function ChatInput({
     onDocumentSelect(null);
   };
 
-  const handleKeyDown = (e) => {
-    if (showDropdown) {
-      return;
-    }
-
-    if (e.key === "Enter" && e.shiftKey) {
-      e.preventDefault();
-      e.currentTarget.form?.requestSubmit();
-    }
-  };
 
   return (
     <div className="space-y-2">
@@ -113,7 +104,7 @@ export function ChatInput({
               {selectedDocument.name}
             </span>
           </Badge>
-          <Button
+          <BaseChatButton
             type="button"
             variant="ghost"
             size="icon"
@@ -121,51 +112,51 @@ export function ChatInput({
             onClick={handleRemoveDocument}
             aria-label="Remove document context"
           >
-            <X className="h-4 w-4" />
-          </Button>
+            <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
+          </BaseChatButton>
         </div>
       )}
 
       <div
         ref={containerRef}
-        className="relative flex flex-col gap-2 sm:flex-row sm:items-end"
+        className="relative flex items-end gap-2"
       >
         <Textarea
           ref={textareaRef}
           value={value}
           onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
+
           placeholder={
             disabled
-              ? "Waiting for response..."
+              ? "Answer is streaming…"
               : selectedDocument
-              ? `Ask about ${selectedDocument.name}... (Shift+Enter to send, @ to change)`
-              : "Type your message... (Shift+Enter to send, @ to select)"
+              ? `Ask about ${selectedDocument.name}…`
+              : "Ask a question about your documents…"
           }
           disabled={disabled}
           rows={1}
           className={cn(
-            "min-h-11 max-h-[200px] resize-none flex-1",
-            "focus-visible:ring-1 text-sm sm:text-base"
+            "min-h-12 max-h-[200px] min-w-0 resize-none flex-1 rounded-xl bg-muted/30 text-sm sm:text-base",
+            "focus-visible:ring-1"
           )}
           aria-label="Chat message"
         />
-        <div className="flex gap-2 sm:gap-0 sm:ml-2 self-end sm:self-center">
+        <div className="flex shrink-0 self-end">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <BaseChatButton
                   type="submit"
                   disabled={!value?.trim() || disabled}
                   size="icon"
-                  className="h-11 w-11 shrink-0"
+                  className="h-12 w-12 shrink-0 rounded-xl"
                   aria-label="Send message"
                 >
-                  <Send className="h-5 w-5" />
-                </Button>
+                  <HugeiconsIcon icon={SentIcon} className="h-5 w-5" />
+                </BaseChatButton>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
-                <p>Shift + Enter to send</p>
+                <p>Send message</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -178,6 +169,9 @@ export function ChatInput({
           searchQuery={searchQuery}
         />
       </div>
+      <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 px-1 text-[11px] leading-4 text-muted-foreground">
+        <span className="whitespace-nowrap">@ to choose a PDF</span>
+      </p>
     </div>
   );
 }

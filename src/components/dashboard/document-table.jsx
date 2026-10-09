@@ -1,19 +1,10 @@
 "use client";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon, ArrowUpDownIcon, CancelCircleIcon, Clock01Icon, Delete02Icon, FileAttachmentIcon, Loading02Icon, Refresh01Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useQueryStates, parseAsInteger, parseAsString } from "nuqs";
 import Link from "next/link";
-import {
-  FileText,
-  Trash2,
-  ArrowUpDown,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  RefreshCw,
-  ChevronDown,
-} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -75,13 +66,13 @@ function removeExtension(filename) {
 function getStatusIcon(status) {
   switch (status) {
     case "READY":
-      return <CheckCircle2 className="h-3.5 w-3.5" />;
+      return <HugeiconsIcon icon={CheckmarkCircle02Icon} className="h-3.5 w-3.5" />;
     case "PROCESSING":
-      return <Loader2 className="h-3.5 w-3.5 animate-spin" />;
+      return <HugeiconsIcon icon={Loading02Icon} className="h-3.5 w-3.5 animate-spin" />;
     case "FAILED":
-      return <XCircle className="h-3.5 w-3.5" />;
+      return <HugeiconsIcon icon={CancelCircleIcon} className="h-3.5 w-3.5" />;
     default:
-      return <Clock className="h-3.5 w-3.5" />;
+      return <HugeiconsIcon icon={Clock01Icon} className="h-3.5 w-3.5" />;
   }
 }
 
@@ -454,7 +445,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
       <Empty className="border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <FileText className="size-6" />
+            <HugeiconsIcon icon={FileAttachmentIcon} className="size-6" />
           </EmptyMedia>
           <EmptyTitle>Error loading documents</EmptyTitle>
           <EmptyDescription>
@@ -471,7 +462,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
         <Empty className="border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
-              <FileText className="size-6" />
+              <HugeiconsIcon icon={FileAttachmentIcon} className="size-6" />
             </EmptyMedia>
             <EmptyTitle>No documents found</EmptyTitle>
             <EmptyDescription>
@@ -486,7 +477,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
       <Empty className="border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <FileText className="size-6" />
+            <HugeiconsIcon icon={FileAttachmentIcon} className="size-6" />
           </EmptyMedia>
           <EmptyTitle>No documents yet</EmptyTitle>
           <EmptyDescription>
@@ -520,7 +511,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
               onClick={handleBulkDeleteClick}
               className="w-full sm:w-fit"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <HugeiconsIcon icon={Delete02Icon} className="mr-2 h-4 w-4" />
               Delete Selected
             </Button>
           </div>
@@ -557,7 +548,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   >
                     <span className="hidden md:inline">Uploaded Date</span>
                     <span className="md:hidden">Date</span>
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                    <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-2 h-4 w-4" />
                   </Button>
                 </TableHead>
                 <TableHead>Status</TableHead>
@@ -572,11 +563,9 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                         disabled={isRefreshing}
                         className="h-8 w-8"
                       >
-                        <RefreshCw
-                          className={`h-4 w-4 ${
-                            isRefreshing ? "animate-spin" : ""
-                          }`}
-                        />
+                        <HugeiconsIcon icon={Refresh01Icon} className={`h-4 w-4 ${
+                                                                          isRefreshing ? "animate-spin" : ""
+                                                                        }`} />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -646,7 +635,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                             disabled={doc.status === "PROCESSING"}
                             aria-label={`Delete ${doc.name}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -676,9 +665,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   disabled={isRefreshing}
                   className="h-9 w-9"
                 >
-                  <RefreshCw
-                    className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
-                  />
+                  <HugeiconsIcon icon={Refresh01Icon} className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -745,7 +732,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                           aria-label={`Delete ${doc.name}`}
                           className="h-8 w-8 p-0"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <HugeiconsIcon icon={Delete02Icon} className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -776,7 +763,7 @@ export function DocumentTable({ searchQuery = "", refreshKey = 0 }) {
                   className="h-8 w-full sm:w-auto"
                 >
                   {urlState.limit} per page
-                  <ChevronDown className="ml-2 h-4 w-4" />
+                  <HugeiconsIcon icon={ArrowDown01Icon} className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
