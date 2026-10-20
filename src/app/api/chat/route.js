@@ -1,7 +1,4 @@
 import { createHash } from "node:crypto";
-import fs from "fs";
-import path from "path";
-import yaml from "js-yaml";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
@@ -11,11 +8,10 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@/lib/ai/google";
 import { streamText, tool, isStepCount } from "ai";
 import { z } from "zod";
+import { prompts } from "@/config/prompts";
 
 function loadPrompts() {
-  const promptsPath = path.join(process.cwd(), "src/config/prompts.yml");
-  const fileContents = fs.readFileSync(promptsPath, "utf8");
-  return yaml.load(fileContents);
+  return prompts;
 }
 
 function buildRAGPrompt(
@@ -212,7 +208,7 @@ export async function POST(request) {
 
     let chatModel;
     try {
-      chatModel = google("gemini-3-flash-preview");
+      chatModel = google("gemini-2.0-flash");
     } catch {
       chatModel = openai("gpt-4o-mini");
     }

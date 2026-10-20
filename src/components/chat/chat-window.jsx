@@ -256,6 +256,12 @@ function ConversationChat({ activeConversationId }) {
     }
   }, [getScrollViewport, activeConversationId, loadedConversationId]);
 
+  const handleStop = useCallback(() => {
+    preparationAttemptRef.current += 1;
+    setPreparing(false);
+    stop();
+  }, [stop]);
+
   if (loadingHistory) {
     return (
       <div className="flex h-full min-h-0 items-center justify-center text-sm text-muted-foreground">
@@ -271,6 +277,7 @@ function ConversationChat({ activeConversationId }) {
         <ChatMessageList
           messages={messages}
           isStreaming={isStreaming}
+          status={status}
           onSuggest={(question) => {
             setInput(question);
             document.querySelector('[aria-label="Chat message"]')?.focus();
@@ -296,13 +303,6 @@ function ConversationChat({ activeConversationId }) {
           <ChatFeedback
             historyError={historyError}
             onHistoryRetry={() => setHistoryRetry((attempt) => attempt + 1)}
-            isStreaming={isStreaming}
-            status={status}
-            onStop={() => {
-              preparationAttemptRef.current += 1;
-              setPreparing(false);
-              stop();
-            }}
             error={error}
             onRetry={() => {
               clearError();
@@ -314,7 +314,9 @@ function ConversationChat({ activeConversationId }) {
             <ChatInput
               value={input}
               onChange={handleInputChange}
-              disabled={isStreaming}
+              onSubmit={handleSubmit}
+              isStreaming={isStreaming}
+              onStop={handleStop}
               selectedDocument={selectedDocument}
               onDocumentSelect={handleDocumentSelect}
             />

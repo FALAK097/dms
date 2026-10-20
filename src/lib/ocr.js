@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { google } from "@/lib/ai/google";
 
-const ocrModel = google("gemini-3-flash-preview");
+const ocrModel = google("gemini-2.0-flash");
 
 async function extractWithGemini(buffer) {
   try {

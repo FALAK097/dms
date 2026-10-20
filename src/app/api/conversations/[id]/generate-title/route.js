@@ -62,9 +62,9 @@ Title:`;
 
     let titleModel;
     try {
-      titleModel = google("gemini-3-flash-preview");
+      titleModel = google("gemini-2.0-flash");
     } catch {
-      titleModel = openai("gpt-3.5-turbo");
+      titleModel = openai("gpt-4o-mini");
     }
 
     const { text } = await generateText({

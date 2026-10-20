@@ -1,13 +1,12 @@
 "use client";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon, ArrowUp02Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, ArrowUp02Icon, SquareIcon, File01Icon } from "@hugeicons/core-free-icons";
 import { useRef, useEffect, useState } from "react";
 import { BaseChatButton } from "@/components/chat/base-chat-button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DocumentMentionDropdown } from "./document-mention-dropdown";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -18,7 +17,9 @@ import {
 export function ChatInput({
   value,
   onChange,
-  disabled = false,
+  onSubmit,
+  isStreaming = false,
+  onStop,
   selectedDocument,
   onDocumentSelect,
 }) {
@@ -58,7 +59,7 @@ export function ChatInput({
   };
 
   const handleKeyDown = (e) => {
-    // If the mention dropdown is open, don't submit on Enter (let dropdown handle it)
+    // If mention dropdown is open, allow dropdown to handle navigation/selection
     if (showDropdown) {
       if (
         e.key === "Enter" ||
@@ -72,11 +73,15 @@ export function ChatInput({
 
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!value?.trim() || disabled) return;
+      if (!value?.trim() || isStreaming) return;
 
-      const form = e.currentTarget.form;
-      if (form) {
-        form.requestSubmit();
+      if (onSubmit) {
+        onSubmit(e);
+      } else {
+        const form = e.currentTarget.form;
+        if (form) {
+          form.requestSubmit();
+        }
       }
     }
   };
@@ -116,82 +121,101 @@ export function ChatInput({
     onDocumentSelect(null);
   };
 
-
   return (
-    <div className="space-y-2">
+    <div
+      ref={containerRef}
+      className="relative flex w-full flex-col rounded-3xl border border-border/60 bg-card p-2 sm:p-2.5 shadow-sm transition-all focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/15 focus-within:shadow-md"
+    >
       {selectedDocument && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 py-2 bg-muted rounded-lg">
-          <Badge variant="secondary" className="gap-1 w-fit">
-            <span className="text-xs hidden sm:inline">Chatting about:</span>
-            <span className="text-xs sm:hidden">About:</span>
-            <span className="font-medium truncate max-w-[200px]">
+        <div className="mb-1.5 flex items-center px-1.5 pt-0.5">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-primary/15">
+            <HugeiconsIcon icon={File01Icon} className="size-3.5 text-primary shrink-0" />
+            <span className="max-w-[240px] truncate sm:max-w-[380px] font-medium text-foreground">
               {selectedDocument.name}
             </span>
-          </Badge>
-          <BaseChatButton
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0"
-            onClick={handleRemoveDocument}
-            aria-label="Remove document context"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} className="h-4 w-4" />
-          </BaseChatButton>
+            <button
+              type="button"
+              onClick={handleRemoveDocument}
+              className="ml-1 rounded-full p-0.5 text-muted-foreground hover:bg-primary/20 hover:text-foreground transition-colors focus:outline-none"
+              aria-label="Remove document context"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+            </button>
+          </div>
         </div>
       )}
 
-      <div
-        ref={containerRef}
-        className="relative flex items-end"
-      >
+      <div className="relative flex items-end">
         <Textarea
           ref={textareaRef}
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-
           placeholder={
-            disabled
-              ? "Answer is streaming…"
+            isStreaming
+              ? "Waiting for response…"
               : selectedDocument
               ? `Ask about ${selectedDocument.name}…`
-              : "@ to choose a PDF, or ask a question…"
+              : "Ask anything, or type @ to select a document…"
           }
-          disabled={disabled}
+          disabled={isStreaming}
           rows={1}
           className={cn(
-            "min-h-12 max-h-[200px] min-w-0 flex-1 resize-none rounded-lg border-none bg-transparent py-3 pr-14 text-sm shadow-none sm:text-base",
-            "focus-visible:ring-2 focus-visible:ring-ring/50"
+            "min-h-11 max-h-[200px] w-full resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none sm:text-base focus-visible:ring-0 placeholder:text-muted-foreground/60 scrollbar-hide",
+            "disabled:cursor-not-allowed disabled:opacity-60"
           )}
           aria-label="Chat message"
         />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <BaseChatButton
-                type="submit"
-                disabled={!value?.trim() || disabled}
-                size="icon"
-                className="absolute bottom-1.5 right-1.5 size-9 shrink-0 rounded-xl"
-                aria-label="Send message"
-              >
-                <HugeiconsIcon icon={ArrowUp02Icon} className="h-5 w-5" />
-              </BaseChatButton>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">
-              <p>Send message</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
 
-        <DocumentMentionDropdown
-          isOpen={showDropdown}
-          onSelect={handleDocumentSelect}
-          position={{ bottom: "100%", left: 0 }}
-          searchQuery={searchQuery}
-        />
+        <div className="mb-0.5 mr-0.5 shrink-0">
+          {isStreaming ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <BaseChatButton
+                    type="button"
+                    onClick={onStop}
+                    size="icon"
+                    className="size-9 rounded-full bg-foreground text-background hover:bg-foreground/80 transition-all shadow-xs"
+                    aria-label="Stop generation"
+                  >
+                    <HugeiconsIcon icon={SquareIcon} className="size-3.5 fill-current" />
+                  </BaseChatButton>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <p>Stop generation</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <BaseChatButton
+                    type="submit"
+                    disabled={!value?.trim()}
+                    size="icon"
+                    className="size-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-xs disabled:opacity-30"
+                    aria-label="Send message"
+                  >
+                    <HugeiconsIcon icon={ArrowUp02Icon} className="size-4" />
+                  </BaseChatButton>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  <p>Send message (Enter)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
       </div>
+
+      <DocumentMentionDropdown
+        isOpen={showDropdown}
+        onSelect={handleDocumentSelect}
+        position={{ bottom: "100%", left: 0 }}
+        searchQuery={searchQuery}
+      />
     </div>
   );
 }
