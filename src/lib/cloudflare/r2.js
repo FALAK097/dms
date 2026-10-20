@@ -1,32 +1,28 @@
 import { randomUUID, createHmac } from "crypto";
 
-const WORKER_URL = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
-const WORKER_SECRET = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
-const R2_SIGNING_SECRET =
-  process.env.INTERNAL_JOB_SECRET || process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
-
 function getWorkerUrl() {
-  if (!WORKER_URL) {
+  const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
+  if (!workerUrl) {
     throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
   }
-
-  return WORKER_URL;
+  return workerUrl;
 }
 
 function getWorkerSecret() {
-  if (!WORKER_SECRET) {
+  const workerSecret = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
+  if (!workerSecret) {
     throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
   }
-
-  return WORKER_SECRET;
+  return workerSecret;
 }
 
 function getSigningSecret() {
-  if (!R2_SIGNING_SECRET) {
+  const signingSecret =
+    process.env.INTERNAL_JOB_SECRET || process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
+  if (!signingSecret) {
     throw new Error("R2 signing secret is not configured");
   }
-
-  return R2_SIGNING_SECRET;
+  return signingSecret;
 }
 
 function signR2Request(method, key, expiresAt) {

@@ -1,12 +1,8 @@
 import { randomUUID } from "crypto";
 
-const WORKER_URL = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
-const WORKER_SECRET = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
-const INTERNAL_JOB_SECRET = process.env.INTERNAL_JOB_SECRET;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
-
 export function verifyInternalJobRequest(request) {
-  const configuredSecret = INTERNAL_JOB_SECRET || WORKER_SECRET;
+  const configuredSecret =
+    process.env.INTERNAL_JOB_SECRET || process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
 
   if (!configuredSecret) {
     console.error("INTERNAL_JOB_SECRET is not configured");
@@ -18,26 +14,26 @@ export function verifyInternalJobRequest(request) {
 }
 
 async function publishJob(type, payload) {
-  if (!WORKER_URL) {
+  const workerUrl = process.env.CLOUDFLARE_QUEUE_WORKER_URL;
+  const workerSecret = process.env.CLOUDFLARE_QUEUE_WORKER_SECRET;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://dms.falakgala.dev";
+
+  if (!workerUrl) {
     throw new Error("CLOUDFLARE_QUEUE_WORKER_URL is not configured");
   }
 
-  if (!WORKER_SECRET) {
+  if (!workerSecret) {
     throw new Error("CLOUDFLARE_QUEUE_WORKER_SECRET is not configured");
   }
 
-  if (!APP_URL) {
-    throw new Error("NEXT_PUBLIC_APP_URL is not configured");
-  }
-
   const jobId = randomUUID();
-  const response = await fetch(new URL("/enqueue", WORKER_URL), {
+  const response = await fetch(new URL("/enqueue", workerUrl), {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${WORKER_SECRET}`,
+      Authorization: `Bearer ${workerSecret}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ jobId, type, appUrl: APP_URL, payload }),
+    body: JSON.stringify({ jobId, type, appUrl, payload }),
   });
 
   if (!response.ok) {

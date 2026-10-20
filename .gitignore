@@ -41,3 +41,6 @@ generated/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*
+.open-next
+backups

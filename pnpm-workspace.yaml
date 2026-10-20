@@ -1,7 +1,13 @@
+packages:
+  - "."
+
 allowBuilds:
-  '@prisma/engines': set this to true or false
-  canvas: set this to true or false
-  prisma: set this to true or false
-  sharp: set this to true or false
+  '@prisma/engines': true
+  '@tailwindcss/oxide': true
+  canvas: false
+  esbuild: true
+  prisma: true
+  sharp: true
   tesseract.js: false
-  unrs-resolver: set this to true or false
+  unrs-resolver: true
+  workerd: true
