@@ -101,12 +101,26 @@ function getAuth() {
 }
 
 export const auth = new Proxy(
-  {},
+  function () {},
   {
     get(_target, prop) {
       const instance = getAuth();
       const value = instance[prop];
       return typeof value === "function" ? value.bind(instance) : value;
+    },
+    has(_target, prop) {
+      const instance = getAuth();
+      return prop in instance;
+    },
+    apply(_target, thisArg, argArray) {
+      const instance = getAuth();
+      if (typeof instance.handler === "function") {
+        return instance.handler(...argArray);
+      }
+      if (typeof instance === "function") {
+        return instance(...argArray);
+      }
+      return Reflect.apply(instance, thisArg, argArray);
     },
   }
 );
