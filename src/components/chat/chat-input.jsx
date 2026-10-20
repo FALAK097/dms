@@ -57,6 +57,30 @@ export function ChatInput({
     }
   };
 
+  const handleKeyDown = (e) => {
+    // If the mention dropdown is open, don't submit on Enter (let dropdown handle it)
+    if (showDropdown) {
+      if (
+        e.key === "Enter" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        e.key === "Escape"
+      ) {
+        return;
+      }
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!value?.trim() || disabled) return;
+
+      const form = e.currentTarget.form;
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  };
+
   const handleDocumentSelect = (doc) => {
     if (!doc) {
       setShowDropdown(false);
@@ -125,6 +149,7 @@ export function ChatInput({
           ref={textareaRef}
           value={value}
           onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
 
           placeholder={
             disabled
