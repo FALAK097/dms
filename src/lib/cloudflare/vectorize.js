@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@/lib/ai/google";
 import { getEncoding } from "js-tiktoken";
 
-const geminiEmbeddingModel = google.embedding("gemini-embedding-001");
+const geminiEmbeddingModel = google.embedding("gemini-embedding-2");
 const openaiEmbeddingModel = openai.embedding("text-embedding-3-small", { dimensions: 768 });
 const tokenEncoder = getEncoding("cl100k_base");
 
@@ -262,7 +262,7 @@ export async function findRelevantContent(
     });
 
     const matches = results?.matches || [];
-    const scoreThreshold = docId ? 0 : 0.6;
+    const scoreThreshold = docId ? 0 : 0.4;
 
     return matches
       .filter(

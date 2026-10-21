@@ -47,7 +47,7 @@ export function ChatInput({
     setCursorPosition(cursorPos);
 
     const textBeforeCursor = newValue.substring(0, cursorPos);
-    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    const atMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\-.]*)$/);
 
     if (atMatch) {
       setShowDropdown(true);
@@ -94,7 +94,7 @@ export function ChatInput({
 
     const textBeforeCursor = value.substring(0, cursorPosition);
     const textAfterCursor = value.substring(cursorPosition);
-    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    const atMatch = textBeforeCursor.match(/@([a-zA-Z0-9_\-.]*)$/);
 
     if (atMatch) {
       const beforeAt = textBeforeCursor.substring(0, atMatch.index);

@@ -78,7 +78,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { messages, conversationId, documentId } = body;
+    let { messages, conversationId, documentId } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -168,10 +168,88 @@ export async function POST(request) {
 
     const conversationHistory = recentMessages.reverse();
 
+    // Auto-resolve document context if not explicitly selected
+    if (!selectedDocument) {
+      // 1. Check for @mention in userMessage (e.g. @AFFIDAVIT-IN-REPLY.PDF or @AFFIDAVIT)
+      const mentionMatch = userMessage.match(/@([a-zA-Z0-9_\-.]+(?:\s+[a-zA-Z0-9_\-.]+)*)/);
+      if (mentionMatch) {
+        const queryTerm = mentionMatch[1].trim();
+        const matched = await prisma.document.findFirst({
+          where: {
+            userId: session.user.id,
+            name: { contains: queryTerm, mode: "insensitive" },
+          },
+        });
+        if (matched) {
+          selectedDocument = matched;
+          documentId = matched.id;
+        }
+      }
+    }
+
+    if (!selectedDocument) {
+      const userDocs = await prisma.document.findMany({
+        where: { userId: session.user.id },
+        select: { id: true, name: true },
+        take: 100,
+      });
+
+      // 2. Check if user message explicitly references a known document name
+      const lowerMsg = userMessage.toLowerCase();
+      for (const doc of userDocs) {
+        const baseName = doc.name.replace(/\.[^/.]+$/, "").toLowerCase();
+        if (
+          lowerMsg.includes(doc.name.toLowerCase()) ||
+          (baseName.length >= 4 && lowerMsg.includes(baseName))
+        ) {
+          selectedDocument = doc;
+          documentId = doc.id;
+          break;
+        }
+      }
+
+      // 3. Conversational follow-up: "tell me about this doc", "summarize it", "what does it say"
+      if (!selectedDocument && recentMessages.length > 0) {
+        const isFollowUp = /\b(this|that|the)\s+(doc|document|file|pdf|affidavit|agreement|contract|paper)\b|\b(tell me about|explain|summarize)\b|\bwhat\s+(is|does)\s+(it|this)\b/i.test(userMessage);
+        if (isFollowUp) {
+          for (const msg of recentMessages) {
+            if (Array.isArray(msg.sources) && msg.sources.length > 0) {
+              const srcId = msg.sources[0]?.documentId;
+              const found = userDocs.find((d) => d.id === srcId);
+              if (found) {
+                selectedDocument = found;
+                documentId = found.id;
+                break;
+              }
+            }
+            if (msg.content) {
+              const contentLower = msg.content.toLowerCase();
+              for (const doc of userDocs) {
+                const baseName = doc.name.replace(/\.[^/.]+$/, "").toLowerCase();
+                if (
+                  contentLower.includes(doc.name.toLowerCase()) ||
+                  (baseName.length >= 4 && contentLower.includes(baseName))
+                ) {
+                  selectedDocument = doc;
+                  documentId = doc.id;
+                  break;
+                }
+              }
+              if (selectedDocument) break;
+            }
+          }
+        }
+      }
+    }
+
+    const retrievalQuery = selectedDocument
+      ? `${selectedDocument.name} ${userMessage}`
+      : userMessage;
+
     const contextChunks = await findRelevantContent(
-      userMessage,
+      retrievalQuery,
       session.user.id,
-      documentId || null,
+      selectedDocument?.id || documentId || null,
       8
     );
 
@@ -286,6 +364,33 @@ export async function POST(request) {
               };
             }
 
+            if (totalCount === 1) {
+              const excerpts = await findRelevantContent(
+                `${documents[0].name} ${documentName}`,
+                session.user.id,
+                documents[0].id,
+                5
+              );
+              return {
+                found: true,
+                totalCount: 1,
+                documents: documents.map((doc) => ({
+                  id: doc.id,
+                  name: doc.name,
+                  status: doc.status,
+                  uploadedAt: doc.createdAt.toISOString(),
+                })),
+                excerpts: excerpts.map((e) => e.content),
+                message: `Found document "${documents[0].name}". ${
+                  excerpts.length > 0
+                    ? `Key excerpts from this document:\n\n${excerpts
+                        .map((e, idx) => `[Excerpt ${idx + 1}]: ${e.content}`)
+                        .join("\n\n")}`
+                    : `Document is ready. You can ask specific questions about it.`
+                }`,
+              };
+            }
+
             return {
               found: true,
               totalCount,
@@ -295,10 +400,7 @@ export async function POST(request) {
                 status: doc.status,
                 uploadedAt: doc.createdAt.toISOString(),
               })),
-              message:
-                totalCount === 1
-                  ? `Found the document "${documents[0].name}". To ask questions about this document, please use @ to mention it in your message, or try rephrasing your question.`
-                  : `Found ${totalCount} documents matching "${documentName}". Showing up to ${documents.length}; please use @ to select and mention the specific document you want to ask about.`,
+              message: `Found ${totalCount} documents matching "${documentName}": ${documents.map(d => `"${d.name}"`).join(", ")}. Please specify which document you'd like to ask about.`,
             };
           },
         }),
