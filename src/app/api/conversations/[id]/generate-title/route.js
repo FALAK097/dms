@@ -60,19 +60,28 @@ Assistant: ${assistantMsg.content.substring(0, 200)}...
 
 Title:`;
 
-    let titleModel;
+    let text = "";
     try {
-      titleModel = google("gemini-2.0-flash");
-    } catch {
-      titleModel = openai("gpt-4o-mini");
+      const primaryModel = process.env.GEMINI_API_KEY
+        ? google("gemini-2.5-flash")
+        : openai("gpt-4o-mini");
+      const res = await generateText({
+        model: primaryModel,
+        prompt: prompt,
+        maxOutputTokens: 30,
+        temperature: 0.7,
+      });
+      text = res.text;
+    } catch (err) {
+      console.warn("Primary title model failed, falling back to OpenAI:", err?.message);
+      const res = await generateText({
+        model: openai("gpt-4o-mini"),
+        prompt: prompt,
+        maxOutputTokens: 30,
+        temperature: 0.7,
+      });
+      text = res.text;
     }
-
-    const { text } = await generateText({
-      model: titleModel,
-      prompt: prompt,
-      maxOutputTokens: 30,
-      temperature: 0.7,
-    });
 
     const title = text.trim().replace(/^["']|["']$/g, "").slice(0, 120) || "New Chat";
 

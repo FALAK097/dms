@@ -206,15 +206,15 @@ export async function POST(request) {
       }),
     };
 
-    let chatModel;
-    try {
-      chatModel = google("gemini-2.0-flash");
-    } catch {
-      chatModel = openai("gpt-4o-mini");
-    }
+    const chatModel = process.env.GEMINI_API_KEY
+      ? google("gemini-2.5-flash")
+      : openai("gpt-4o-mini");
 
     const result = streamText({
       model: chatModel,
+      onError: ({ error }) => {
+        console.error("StreamText runtime error:", error);
+      },
       tools: {
         total_documents: tool({
           description:
