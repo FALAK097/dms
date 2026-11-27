@@ -3,11 +3,9 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import { prisma } from "./db";
 
-let _auth = null;
+const globalForAuth = globalThis;
 
-function getAuth() {
-  if (_auth) return _auth;
-
+function createAuth() {
   const socialProviders = {};
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     socialProviders.google = {
@@ -16,14 +14,14 @@ function getAuth() {
     };
   }
 
-  _auth = betterAuth({
+  return betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL:
       process.env.BETTER_AUTH_URL ||
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://dms.falakgala.dev",
     database: prismaAdapter(prisma, {
-      provider: "postgresql",
+      provider: "sqlite",
     }),
     emailAndPassword: {
       enabled: false,
@@ -96,8 +94,21 @@ function getAuth() {
       }),
     ],
   });
+}
 
-  return _auth;
+function getAuth() {
+  const cfContext = globalThis[Symbol.for("__cloudflare-context__")];
+  if (cfContext) {
+    if (!cfContext.__auth) {
+      cfContext.__auth = createAuth();
+    }
+    return cfContext.__auth;
+  }
+
+  if (!globalForAuth.auth) {
+    globalForAuth.auth = createAuth();
+  }
+  return globalForAuth.auth;
 }
 
 export const auth = new Proxy(

@@ -177,7 +177,7 @@ export async function POST(request) {
         const matched = await prisma.document.findFirst({
           where: {
             userId: session.user.id,
-            name: { contains: queryTerm, mode: "insensitive" },
+            name: { contains: queryTerm },
           },
         });
         if (matched) {
@@ -339,7 +339,6 @@ export async function POST(request) {
               userId: session.user.id,
               name: {
                 contains: documentName,
-                mode: "insensitive",
               },
             };
             const [totalCount, documents] = await Promise.all([

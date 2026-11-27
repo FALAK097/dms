@@ -28,7 +28,6 @@ export async function GET(request) {
       ...(search && {
         name: {
           contains: search,
-          mode: "insensitive",
         },
       }),
     };

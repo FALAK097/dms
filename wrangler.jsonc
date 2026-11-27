@@ -25,6 +25,13 @@
       "bucket_name": "dms-uploads"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dms-db",
+      "database_id": "0cc07a1a-e9bf-4f31-8640-845333d5fd00"
+    }
+  ],
   "vars": {
     "NEXT_PUBLIC_APP_URL": "https://dms.falakgala.dev",
     "BETTER_AUTH_URL": "https://dms.falakgala.dev",

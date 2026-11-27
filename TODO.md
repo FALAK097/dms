@@ -52,6 +52,7 @@
 - [X] Remove all Upstash and DigitalOcean dependencies, env vars, and references
 - [X] Add Cloudflare Worker (dms-jobs) with Queue, KV, Vectorize, and R2 bindings
 - [X] Add signed URL support for secure R2 access without Cloudflare API token in Vercel
+- [X] Migrate database from Neon PostgreSQL to Cloudflare D1 (SQLite) with local better-sqlite3 fallback
 
 ## Dashboard / Document Management
 

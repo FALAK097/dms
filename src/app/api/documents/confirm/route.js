@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, isUniqueConstraintError } from "@/lib/db";
 import { verifyObjectExists } from "@/lib/storage";
 import { publishOCRProcessingJob } from "@/lib/cloudflare/jobs";
 
@@ -145,26 +145,48 @@ export async function POST(request) {
 
         createdDocuments.push(document);
       } catch (dbError) {
-        // Handle unique constraint violation for contentHash
+        const target = dbError?.meta?.target;
+        const targetMatchesContentHash = Array.isArray(target)
+          ? target.includes("unique_content_hash_per_user") ||
+            target.includes("contentHash")
+          : typeof target === "string" &&
+            (target.includes("unique_content_hash_per_user") ||
+              target.includes("contentHash"));
+        const messageMatchesContentHash =
+          typeof dbError?.message === "string" &&
+          (dbError.message.includes("unique_content_hash_per_user") ||
+            dbError.message.includes("contentHash"));
+
+        // Handle unique constraint violation for contentHash across Prisma / D1 / SQLite
         if (
-          dbError.code === "P2002" &&
-          (dbError.meta?.target?.includes("unique_content_hash_per_user") ||
-            dbError.meta?.target?.includes("contentHash"))
+          isUniqueConstraintError(dbError) &&
+          (contentHash || targetMatchesContentHash || messageMatchesContentHash)
         ) {
-          console.log(
-            `Unique constraint violation: Document with same content hash already exists for ${fileName}`
-          );
-          const existingDocument = await prisma.document.findFirst({
-            where: {
-              contentHash,
-              userId: session.user.id,
-            },
-          });
-          failedFiles.push({
-            fileName,
-            reason: "Document already exists",
-            existingDocumentId: existingDocument?.id,
-          });
+          const existingDocument = contentHash
+            ? await prisma.document.findFirst({
+                where: {
+                  contentHash,
+                  userId: session.user.id,
+                },
+              })
+            : null;
+          if (
+            existingDocument ||
+            targetMatchesContentHash ||
+            messageMatchesContentHash
+          ) {
+            console.log(
+              `Unique constraint violation: Document with same content hash already exists for ${fileName}`
+            );
+            failedFiles.push({
+              fileName,
+              reason: "Document already exists",
+              existingDocumentId: existingDocument?.id,
+            });
+          } else {
+            console.error(`Failed to create document ${fileName}:`, dbError);
+            failedFiles.push({ fileName, reason: "Database error" });
+          }
         } else {
           console.error(`Failed to create document ${fileName}:`, dbError);
           failedFiles.push({ fileName, reason: "Database error" });
