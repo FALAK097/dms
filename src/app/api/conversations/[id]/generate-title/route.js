@@ -1,10 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { openai } from "@ai-sdk/openai";
-import { google } from "@/lib/ai/google";
-import { generateText } from "ai";
+import { generateConversationTitle } from "@/lib/conversations/generate-title";
 
 export async function POST(request, { params }) {
   try {
@@ -17,80 +14,16 @@ export async function POST(request, { params }) {
     }
 
     const { id } = await params;
+    const result = await generateConversationTitle(id, session.user.id);
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { id },
-      include: {
-        messages: {
-          take: 2,
-          orderBy: { createdAt: "asc" },
-        },
-      },
-    });
-
-    if (!conversation) {
+    if (result.error) {
       return NextResponse.json(
-        { error: "Conversation not found" },
-        { status: 404 }
+        { error: result.error },
+        { status: result.status }
       );
     }
 
-    if (conversation.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    if (conversation.title !== "New Chat") return NextResponse.json({ title: conversation.title });
-
-    if (conversation.messages.length < 2) {
-      return NextResponse.json(
-        { error: "Not enough messages to generate title" },
-        { status: 400 }
-      );
-    }
-
-    const userMsg = conversation.messages.find((m) => m.role === "USER");
-    const assistantMsg = conversation.messages.find(
-      (m) => m.role === "ASSISTANT"
-    );
-
-    const prompt = `Generate a concise, descriptive title (3-6 words) for this conversation. Do not provide generic titles. Provide a unique title that reflects the content of the conversation and is personalized. Only return the title, nothing else.
-
-User: ${userMsg.content}
-Assistant: ${assistantMsg.content.substring(0, 200)}...
-
-Title:`;
-
-    let text = "";
-    try {
-      const primaryModel = process.env.GEMINI_API_KEY
-        ? google("gemini-2.5-flash")
-        : openai("gpt-4o-mini");
-      const res = await generateText({
-        model: primaryModel,
-        prompt: prompt,
-        maxOutputTokens: 30,
-        temperature: 0.7,
-      });
-      text = res.text;
-    } catch (err) {
-      console.warn("Primary title model failed, falling back to OpenAI:", err?.message);
-      const res = await generateText({
-        model: openai("gpt-4o-mini"),
-        prompt: prompt,
-        maxOutputTokens: 30,
-        temperature: 0.7,
-      });
-      text = res.text;
-    }
-
-    const title = text.trim().replace(/^["']|["']$/g, "").slice(0, 120) || "New Chat";
-
-    await prisma.conversation.updateMany({
-      where: { id, userId: session.user.id, title: "New Chat" },
-      data: { title },
-    });
-
-    return NextResponse.json({ title });
+    return NextResponse.json({ title: result.title });
   } catch (error) {
     console.error("Error generating title:", error);
     return NextResponse.json(

@@ -179,7 +179,7 @@ async function generateEmbeddings(value) {
 }
 
 async function generateEmbedding(value) {
-  const input = value.replaceAll("\\n", " ");
+  const input = value.replaceAll("\n", " ");
   const { embedding } = await createSingleEmbedding(input);
   return embedding;
 }

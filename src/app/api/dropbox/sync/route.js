@@ -68,7 +68,8 @@ export async function POST(request) {
       select: { dropboxWebhookCursor: true },
     });
 
-    let cursor = null;
+    let cursor = user?.dropboxWebhookCursor || null;
+    let cursorResetAttempted = false;
     const filesToProcess = [];
     let hasMore = true;
 
@@ -84,11 +85,22 @@ export async function POST(request) {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              cursor: cursor,
-            }),
+            body: JSON.stringify({ cursor }),
           }
         );
+
+        if (!response.ok) {
+          if (cursorResetAttempted) {
+            throw new Error(
+              `Dropbox list_folder/continue failed (${response.status}): ${await response.text()}`
+            );
+          }
+          console.log("Sync cursor invalid, reinitializing...");
+          cursor = null;
+          cursorResetAttempted = true;
+          continue;
+        }
+
         result = await response.json();
       } else {
         const response = await dropboxApiRequest(
@@ -106,10 +118,17 @@ export async function POST(request) {
             }),
           }
         );
+
+        if (!response.ok) {
+          throw new Error(
+            `Dropbox list_folder failed (${response.status}): ${await response.text()}`
+          );
+        }
+
         result = await response.json();
       }
 
-      for (const entry of result.entries) {
+      for (const entry of result.entries || []) {
         if (entry[".tag"] === "file") {
           filesToProcess.push(entry);
         }
@@ -125,7 +144,7 @@ export async function POST(request) {
         },
       });
 
-      hasMore = result.has_more;
+      hasMore = Boolean(result.has_more);
     }
 
     if (filesToProcess.length > 0) {

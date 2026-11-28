@@ -1,6 +1,9 @@
 packages:
   - "."
 
+overrides:
+  better-sqlite3: "^13.2.0"
+
 allowBuilds:
   '@prisma/engines': true
   '@tailwindcss/oxide': true

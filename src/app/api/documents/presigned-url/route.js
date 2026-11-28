@@ -52,7 +52,10 @@ export async function POST(request) {
     }
 
     const MAX_FILE_SIZE = 500 * 1024 * 1024;
-    if (fileSize && fileSize > MAX_FILE_SIZE) {
+    if (
+      fileSize !== undefined &&
+      (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_SIZE)
+    ) {
       return NextResponse.json(
         { error: `File size exceeds maximum allowed size of 500MB` },
         { status: 400 }

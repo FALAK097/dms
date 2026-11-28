@@ -66,10 +66,41 @@ export async function POST(request) {
       }
     }
 
+    if (document.status === "READY" && document.embeddingsDone) {
+      return NextResponse.json({
+        success: true,
+        alreadyReady: true,
+        documentId: document.id,
+        documentName: document.name,
+        embeddingsDone: true,
+        chunkCount: document.chunkCount ?? 0,
+      });
+    }
+
+    const activeProcessingWindowMs = 5 * 60 * 1000;
+    if (
+      !isInternalJobRequest &&
+      document.status === "PROCESSING" &&
+      document.processingStartedAt &&
+      Date.now() - new Date(document.processingStartedAt).getTime() <
+        activeProcessingWindowMs
+    ) {
+      return NextResponse.json(
+        {
+          success: true,
+          processing: true,
+          documentId: document.id,
+          documentName: document.name,
+        },
+        { status: 202 }
+      );
+    }
+
     await prisma.document.update({
       where: { id: documentId },
       data: {
         status: "PROCESSING",
+        processingStartedAt: new Date(),
         retryCount: { increment: 1 },
       },
     });

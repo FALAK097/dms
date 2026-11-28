@@ -6,6 +6,11 @@ import { prisma } from "./db";
 const globalForAuth = globalThis;
 
 function createAuth() {
+  const baseURL =
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://dms.falakgala.dev";
+
   const socialProviders = {};
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     socialProviders.google = {
@@ -16,10 +21,20 @@ function createAuth() {
 
   return betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL:
-      process.env.BETTER_AUTH_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
+    baseURL,
+    trustedOrigins: [
+      baseURL,
+      process.env.NEXT_PUBLIC_APP_URL,
       "https://dms.falakgala.dev",
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8788",
+            "http://localhost:8787",
+          ]
+        : []),
+    ].filter(Boolean),
     database: prismaAdapter(prisma, {
       provider: "sqlite",
     }),
@@ -31,6 +46,12 @@ function createAuth() {
       accountLinking: {
         enabled: true,
         allowDifferentEmails: true,
+        trustedProviders: ["google", "dropbox"],
+      },
+    },
+    advanced: {
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
       },
     },
     plugins: [
@@ -45,9 +66,7 @@ function createAuth() {
             authorizationUrlParams: {
               token_access_type: "offline",
             },
-            redirectURI: `${
-              process.env.NEXT_PUBLIC_APP_URL || "https://dms.falakgala.dev"
-            }/api/auth/oauth2/callback/dropbox`,
+            redirectURI: `${baseURL}/api/auth/oauth2/callback/dropbox`,
             accessType: "offline",
             scopes: [
               "account_info.read",
@@ -81,6 +100,7 @@ function createAuth() {
                 return {
                   id: profile.account_id,
                   email: profile.email,
+                  emailVerified: Boolean(profile.email_verified),
                   name: profile.name.display_name,
                   image: profile.profile_photo_url || null,
                 };
@@ -97,14 +117,6 @@ function createAuth() {
 }
 
 function getAuth() {
-  const cfContext = globalThis[Symbol.for("__cloudflare-context__")];
-  if (cfContext) {
-    if (!cfContext.__auth) {
-      cfContext.__auth = createAuth();
-    }
-    return cfContext.__auth;
-  }
-
   if (!globalForAuth.auth) {
     globalForAuth.auth = createAuth();
   }

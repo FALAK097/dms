@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID, timingSafeEqual } from "crypto";
 
 export function verifyInternalJobRequest(request) {
   const configuredSecret =
@@ -10,7 +10,13 @@ export function verifyInternalJobRequest(request) {
   }
 
   const providedSecret = request.headers.get("x-internal-job-secret");
-  return providedSecret === configuredSecret;
+  if (!providedSecret) {
+    return false;
+  }
+
+  const expectedHash = createHash("sha256").update(configuredSecret).digest();
+  const providedHash = createHash("sha256").update(providedSecret).digest();
+  return timingSafeEqual(providedHash, expectedHash);
 }
 
 async function publishJob(type, payload) {

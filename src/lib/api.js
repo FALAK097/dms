@@ -280,12 +280,14 @@ class UploadQueue {
           continue;
         }
 
-        documentAPI.processDocument(document.id).catch((error) => {
-          console.error(
-            `Failed to trigger processing for document ${document.id}:`,
-            error
-          );
-        });
+        if (document.status === "PENDING") {
+          documentAPI.processDocument(document.id).catch((error) => {
+            console.error(
+              `Failed to trigger processing for document ${document.id}:`,
+              error
+            );
+          });
+        }
 
         if (item.onProgress) {
           item.onProgress({

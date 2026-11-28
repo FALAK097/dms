@@ -14,13 +14,15 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
+    const parsedLimit = Number.parseInt(searchParams.get("limit") || "10", 10);
     const search = searchParams.get("search") || "";
     const sortOrder = searchParams.get("sortOrder") || "desc";
 
-    const validPage = Math.max(1, page);
-    const validLimit = Math.min(Math.max(1, limit), 100);
+    const validPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+    const validLimit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(1, parsedLimit), 100)
+      : 10;
     const skip = (validPage - 1) * validLimit;
 
     const where = {

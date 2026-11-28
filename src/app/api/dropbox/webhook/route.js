@@ -32,31 +32,49 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const headersList = await headers();
-    const signature = headersList.get("x-dropbox-signature");
-    const body = await request.text();
-
-    if (signature && process.env.DROPBOX_CLIENT_SECRET) {
-      const expectedSignature = crypto
-        .createHmac("sha256", process.env.DROPBOX_CLIENT_SECRET)
-        .update(body)
-        .digest("hex");
-
-      if (
-        !crypto.timingSafeEqual(
-          Buffer.from(signature),
-          Buffer.from(expectedSignature)
-        )
-      ) {
-        console.error("Invalid webhook signature");
-        return NextResponse.json(
-          { error: "Invalid signature" },
-          { status: 403 }
-        );
-      }
+    const secret = process.env.DROPBOX_CLIENT_SECRET;
+    if (!secret) {
+      console.error("DROPBOX_CLIENT_SECRET is not configured");
+      return NextResponse.json(
+        { error: "Webhook secret not configured" },
+        { status: 500 }
+      );
     }
 
-    const payload = JSON.parse(body);
+    const headersList = await headers();
+    const signature = headersList.get("x-dropbox-signature");
+    if (!signature) {
+      return NextResponse.json(
+        { error: "Missing signature" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.text();
+    const expectedSignature = crypto
+      .createHmac("sha256", secret)
+      .update(body)
+      .digest("hex");
+
+    const sigBuf = Buffer.from(signature, "utf8");
+    const expectedBuf = Buffer.from(expectedSignature, "utf8");
+    if (
+      sigBuf.length !== expectedBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expectedBuf)
+    ) {
+      console.error("Invalid webhook signature");
+      return NextResponse.json(
+        { error: "Invalid signature" },
+        { status: 403 }
+      );
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
     if (payload.list_folder && payload.list_folder.accounts) {
       const accounts = payload.list_folder.accounts;
@@ -131,6 +149,7 @@ async function processDropboxChanges(dropboxAccountId) {
     });
 
     let cursor = user?.dropboxWebhookCursor || null;
+    let cursorResetAttempted = false;
     let hasMore = true;
     const filesToProcess = [];
 
@@ -138,33 +157,31 @@ async function processDropboxChanges(dropboxAccountId) {
       let result;
 
       if (cursor) {
-        try {
-          const response = await dropboxApiRequest(
-            account.userId,
-            "/2/files/list_folder/continue",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                cursor: cursor,
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            console.log("Cursor invalid, reinitializing...");
-            cursor = null;
-            continue;
+        const response = await dropboxApiRequest(
+          account.userId,
+          "/2/files/list_folder/continue",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ cursor }),
           }
+        );
 
-          result = await response.json();
-        } catch (error) {
-          console.error("Error using cursor, reinitializing:", error);
+        if (!response.ok) {
+          if (cursorResetAttempted) {
+            throw new Error(
+              `Dropbox list_folder/continue failed (${response.status}): ${await response.text()}`
+            );
+          }
+          console.log("Cursor invalid, reinitializing...");
           cursor = null;
+          cursorResetAttempted = true;
           continue;
         }
+
+        result = await response.json();
       } else {
         const response = await dropboxApiRequest(
           account.userId,
@@ -181,13 +198,19 @@ async function processDropboxChanges(dropboxAccountId) {
             }),
           }
         );
+
+        if (!response.ok) {
+          throw new Error(
+            `Dropbox list_folder failed (${response.status}): ${await response.text()}`
+          );
+        }
+
         result = await response.json();
       }
 
-      for (const entry of result.entries) {
+      for (const entry of result.entries || []) {
         if (entry[".tag"] === "file") {
           filesToProcess.push(entry);
-        } else if (entry[".tag"] === "deleted") {
         }
       }
 
@@ -201,15 +224,13 @@ async function processDropboxChanges(dropboxAccountId) {
         },
       });
 
-      hasMore = result.has_more;
+      hasMore = Boolean(result.has_more);
     }
 
     if (filesToProcess.length > 0) {
-      const result = await publishBatchFileProcessingJobs(
-        account.userId,
-        filesToProcess,
-        { source: "webhook" }
-      );
+      await publishBatchFileProcessingJobs(account.userId, filesToProcess, {
+        source: "webhook",
+      });
     } else {
       console.log("ℹ️  No new files to process");
     }

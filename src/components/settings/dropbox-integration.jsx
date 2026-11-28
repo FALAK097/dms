@@ -137,7 +137,11 @@ export const DropboxIntegration = ({ user }) => {
 
     try {
       setDisconnecting(true);
-      await unlinkDropboxAccount();
+      const { error } = await unlinkDropboxAccount(dropboxAccount.id);
+      if (error) {
+        toast.error(error.message || "Failed to disconnect Dropbox");
+        return;
+      }
       toast.success("Dropbox disconnected successfully");
       await fetchAccounts();
     } catch (error) {

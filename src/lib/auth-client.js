@@ -35,9 +35,15 @@ export const getLinkedAccounts = async () => {
   }
 };
 
-export const unlinkDropboxAccount = async () => {
+export const unlinkDropboxAccount = async (accountId) => {
+  if (!accountId) {
+    return {
+      data: null,
+      error: { message: "Dropbox account ID is required" },
+    };
+  }
   const { data, error } = await unlinkAccount({
-    providerId: "dropbox",
+    accountId,
   });
   return { data, error };
 };

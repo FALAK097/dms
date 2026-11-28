@@ -3,9 +3,9 @@
   "name": "dms",
   "main": ".open-next/worker.js",
   "build": {
-    "command": "pnpm run build:cf"
+    "command": "[ -n \"$OPEN_NEXT_DEPLOY\" ] || pnpm run build:cf"
   },
-  "compatibility_date": "2025-05-05",
+  "compatibility_date": "2026-10-26",
   "compatibility_flags": [
     "nodejs_compat"
   ],

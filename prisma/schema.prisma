@@ -98,7 +98,6 @@ model Document {
 
   @@unique([contentHash, userId], name: "unique_content_hash_per_user")
   @@index([userId])
-  @@index([contentHash, userId])
   @@index([status, userId])
   @@map("document")
 }

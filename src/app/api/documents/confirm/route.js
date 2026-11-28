@@ -59,12 +59,35 @@ export async function POST(request) {
         continue;
       }
 
+      const MAX_FILE_SIZE = 500 * 1024 * 1024;
+      if (
+        fileSize !== undefined &&
+        (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_SIZE)
+      ) {
+        failedFiles.push({ fileName, reason: "Invalid file size" });
+        continue;
+      }
+
       try {
         const verification = await verifyObjectExists(key);
 
         if (!verification.exists) {
           console.error(`File not found in storage: ${key}`);
           failedFiles.push({ fileName, reason: "File not found in storage" });
+          continue;
+        }
+
+        if (
+          verification.contentType &&
+          verification.contentType !== "application/pdf" &&
+          verification.contentType !== "application/octet-stream"
+        ) {
+          failedFiles.push({ fileName, reason: "Invalid stored content type" });
+          continue;
+        }
+
+        if (verification.size > MAX_FILE_SIZE) {
+          failedFiles.push({ fileName, reason: "Stored file exceeds size limit" });
           continue;
         }
 
@@ -84,7 +107,7 @@ export async function POST(request) {
       }
 
       try {
-        const document = await prisma.document.create({
+        let document = await prisma.document.create({
           data: {
             name: fileName,
             size: fileSize || 0,
@@ -107,13 +130,6 @@ export async function POST(request) {
           console.log(
             `[DEV] Skipping Cloudflare Queue for document ${document.id} - processing directly`
           );
-
-          await prisma.document.update({
-            where: { id: document.id },
-            data: {
-              status: "PENDING",
-            },
-          });
         } else {
           const queueResult = await publishOCRProcessingJob(
             document.id,
@@ -121,7 +137,7 @@ export async function POST(request) {
           );
 
           if (queueResult.success) {
-            await prisma.document.update({
+            document = await prisma.document.update({
               where: { id: document.id },
               data: {
                 backgroundJobId: queueResult.jobId,
@@ -133,7 +149,7 @@ export async function POST(request) {
             console.error(
               `Failed to enqueue processing for document ${document.id}`
             );
-            await prisma.document.update({
+            document = await prisma.document.update({
               where: { id: document.id },
               data: {
                 status: "FAILED",

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDatabaseProvider, prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const start = Date.now();
-  const provider = globalThis[Symbol.for("__cloudflare-context__")]?.env?.DB
-    ? "d1"
-    : "sqlite";
+  const provider = getDatabaseProvider();
 
   try {
     await prisma.user.count();

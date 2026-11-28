@@ -9,6 +9,7 @@ import { google } from "@/lib/ai/google";
 import { streamText, tool, isStepCount } from "ai";
 import { z } from "zod";
 import { prompts } from "@/config/prompts";
+import { generateConversationTitle } from "@/lib/conversations/generate-title";
 
 function loadPrompts() {
   return prompts;
@@ -478,20 +479,18 @@ export async function POST(request) {
           }
 
           if (isNewConversation || conversation.title === "New Chat") {
-            const appUrl =
-              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-            setTimeout(() => {
-              fetch(
-                `${appUrl}/api/conversations/${conversation.id}/generate-title`,
-                {
-                  method: "POST",
-                  headers: {
-                    Cookie: request.headers.get("cookie") || "",
-                  },
-                }
-              ).catch((err) => console.error("Failed to generate title:", err));
-            }, 100);
+            const titleTask = generateConversationTitle(
+              conversation.id,
+              session.user.id
+            ).catch((err) => console.error("Failed to generate title:", err));
+            const waitUntil =
+              globalThis[Symbol.for("__cloudflare-context__")]?.ctx?.waitUntil;
+            if (typeof waitUntil === "function") {
+              waitUntil.call(
+                globalThis[Symbol.for("__cloudflare-context__")].ctx,
+                titleTask
+              );
+            }
           }
         } catch (error) {
           console.error("Error saving assistant message:", error);
