@@ -9,6 +9,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  // Prevent esbuild keep-names from injecting __name() into next-themes' inline script string,
+  // which throws "Uncaught ReferenceError: __name is not defined" in the browser.
+  "keep_names": false,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
