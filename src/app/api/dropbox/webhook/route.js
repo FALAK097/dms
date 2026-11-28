@@ -76,7 +76,7 @@ export async function POST(request) {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    if (payload.list_folder && payload.list_folder.accounts) {
+    if (payload.list_folder && Array.isArray(payload.list_folder.accounts)) {
       const accounts = payload.list_folder.accounts;
 
       await Promise.all(
@@ -149,6 +149,7 @@ async function processDropboxChanges(dropboxAccountId) {
     });
 
     let cursor = user?.dropboxWebhookCursor || null;
+    let latestCursor = null;
     let cursorResetAttempted = false;
     let hasMore = true;
     const filesToProcess = [];
@@ -215,24 +216,37 @@ async function processDropboxChanges(dropboxAccountId) {
       }
 
       cursor = result.cursor;
-
-      await prisma.user.update({
-        where: { id: account.userId },
-        data: {
-          dropboxWebhookCursor: cursor,
-          dropboxCursorUpdatedAt: new Date(),
-        },
-      });
-
+      latestCursor = result.cursor;
       hasMore = Boolean(result.has_more);
     }
 
     if (filesToProcess.length > 0) {
-      await publishBatchFileProcessingJobs(account.userId, filesToProcess, {
-        source: "webhook",
-      });
+      const queueResult = await publishBatchFileProcessingJobs(
+        account.userId,
+        filesToProcess,
+        {
+          source: "webhook",
+        }
+      );
+
+      if (queueResult.failedCount > 0) {
+        console.error(
+          `Webhook failed to queue ${queueResult.failedCount} file(s) for user ${account.userId}; cursor not advanced`
+        );
+        return;
+      }
     } else {
       console.log("ℹ️  No new files to process");
+    }
+
+    if (latestCursor) {
+      await prisma.user.update({
+        where: { id: account.userId },
+        data: {
+          dropboxWebhookCursor: latestCursor,
+          dropboxCursorUpdatedAt: new Date(),
+        },
+      });
     }
   } catch (error) {
     console.error("Error in processDropboxChanges:", error);

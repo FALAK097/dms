@@ -69,6 +69,7 @@ export async function POST(request) {
     });
 
     let cursor = user?.dropboxWebhookCursor || null;
+    let latestCursor = null;
     let cursorResetAttempted = false;
     const filesToProcess = [];
     let hasMore = true;
@@ -135,15 +136,7 @@ export async function POST(request) {
       }
 
       cursor = result.cursor;
-
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: {
-          dropboxWebhookCursor: cursor,
-          dropboxCursorUpdatedAt: new Date(),
-        },
-      });
-
+      latestCursor = result.cursor;
       hasMore = Boolean(result.has_more);
     }
 
@@ -154,26 +147,58 @@ export async function POST(request) {
         { source: "manual_sync" }
       );
 
+      if (queueResult.failedCount > 0) {
+        console.error(
+          `Dropbox manual sync failed to queue ${queueResult.failedCount} file(s); cursor not advanced`
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Some files failed to queue for processing. Please retry sync.",
+            queuedCount: queueResult.queuedCount,
+            failedCount: queueResult.failedCount,
+          },
+          { status: 502 }
+        );
+      }
+
+      if (latestCursor) {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: {
+            dropboxWebhookCursor: latestCursor,
+            dropboxCursorUpdatedAt: new Date(),
+          },
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: `${queueResult.queuedCount} file(s) queued for processing. They will appear in your dashboard shortly.`,
         queuedCount: queueResult.queuedCount,
         failedCount: queueResult.failedCount,
       });
-    } else {
-      console.log("ℹ️  No new files to sync");
-      return NextResponse.json({
-        success: true,
-        message: "No new files to sync.",
-        queuedCount: 0,
-        failedCount: 0,
+    }
+
+    if (latestCursor) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+          dropboxWebhookCursor: latestCursor,
+          dropboxCursorUpdatedAt: new Date(),
+        },
       });
     }
+
+    console.log("ℹ️  No new files to sync");
+    return NextResponse.json({
+      success: true,
+      message: "No new files to sync.",
+      queuedCount: 0,
+      failedCount: 0,
+    });
   } catch (error) {
     console.error("Manual sync error:", error);
-    return NextResponse.json(
-      { error: "Sync failed", details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
 }

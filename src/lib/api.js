@@ -280,6 +280,22 @@ class UploadQueue {
           continue;
         }
 
+        if (document.status === "FAILED") {
+          const failureReason =
+            document.embeddingsError || "Failed to queue document for processing";
+          if (item.onProgress) {
+            item.onProgress({
+              fileName: item.file.name,
+              status: "failed",
+              error: failureReason,
+              document,
+              queueLength: this.queue.length - 1,
+            });
+          }
+          await this.removeFromQueue(0);
+          continue;
+        }
+
         if (document.status === "PENDING") {
           documentAPI.processDocument(document.id).catch((error) => {
             console.error(

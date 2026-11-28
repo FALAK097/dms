@@ -10,9 +10,10 @@ This is a [Next.js](https://nextjs.org) Document Management System (DMS) deploye
 
 ### Database (Cloudflare D1 / Local SQLite)
 
-By default, `.env.example` sets `DATABASE_URL="file:./prisma/dev.db"` for local Next.js/Node development (`pnpm dev` uses this SQLite file when `DATABASE_URL` starts with `file:`). Initialize (or reset with `-- --reset`) the local SQLite database from `migrations/*.sql`:
+Copy `.env.example` to `.env` before initializing the local database (if `DATABASE_URL` is unset or starts with `file:`, both `pnpm db:bootstrap` and `pnpm dev` default to `file:./prisma/dev.db`). Initialize (or reset with `-- --reset`) the local SQLite database from `migrations/*.sql`:
 
 ```bash
+cp .env.example .env
 pnpm db:bootstrap
 ```
 

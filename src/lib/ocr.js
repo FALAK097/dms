@@ -1,14 +1,12 @@
 import { generateText } from "ai";
 import { google } from "@/lib/ai/google";
 
-const ocrModel = google("gemini-2.5-flash");
-
 async function extractWithGemini(buffer) {
   try {
     const prompt = `Extract all text from this PDF document. Return only the extracted text without any additional commentary or formatting. If the document contains tables, preserve their structure. If the document has multiple pages, extract text from all pages in order.`;
 
     const response = await generateText({
-      model: ocrModel,
+      model: google("gemini-2.5-flash"),
       messages: [
         {
           role: "user",

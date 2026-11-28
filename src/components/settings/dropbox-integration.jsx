@@ -68,10 +68,10 @@ export const DropboxIntegration = ({ user }) => {
         toast.success(result.message || "Sync completed successfully");
         setLastSynced(new Date().toISOString());
       } else {
-        toast.error("Sync failed");
+        toast.error(result.error || "Sync failed");
       }
     } catch (error) {
-      toast.error("Failed to sync with Dropbox");
+      toast.error(error?.response?.data?.error || "Failed to sync with Dropbox");
     } finally {
       setSyncing(false);
     }

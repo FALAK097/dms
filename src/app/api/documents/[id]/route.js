@@ -69,6 +69,16 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    await deleteFromR2(document.key);
+
+    if (document.embeddingsDone && document.chunkCount > 0) {
+      try {
+        await deleteEmbeddings(id, document.chunkCount);
+      } catch (vectorError) {
+        console.error("Failed to delete vectors:", vectorError);
+      }
+    }
+
     const deleted = await prisma.document.deleteMany({
       where: { id, userId: session.user.id },
     });
@@ -78,16 +88,6 @@ export async function DELETE(request, { params }) {
         { error: "Document not found" },
         { status: 404 }
       );
-    }
-
-    await deleteFromR2(document.key);
-
-    if (document.embeddingsDone && document.chunkCount > 0) {
-      try {
-        await deleteEmbeddings(id, document.chunkCount);
-      } catch (vectorError) {
-        console.error("Failed to delete vectors:", vectorError);
-      }
     }
 
     return NextResponse.json({

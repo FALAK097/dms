@@ -3,13 +3,24 @@ import { PrismaClient } from "../generated/prisma/client";
 
 const globalForPrisma = globalThis;
 
+function isNodeRuntime() {
+  return (
+    !(
+      typeof navigator !== "undefined" &&
+      navigator.userAgent === "Cloudflare-Workers"
+    ) &&
+    typeof process !== "undefined" &&
+    process.release?.name === "node" &&
+    Boolean(process.versions?.node)
+  );
+}
+
 function shouldUseLocalSqlite() {
   return (
     process.env.NODE_ENV === "development" &&
     process.env.USE_CLOUDFLARE_D1_DEV !== "true" &&
-    Boolean(process.env.DATABASE_URL?.startsWith("file:")) &&
-    typeof process !== "undefined" &&
-    Boolean(process.versions?.node)
+    (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith("file:")) &&
+    isNodeRuntime()
   );
 }
 
@@ -79,7 +90,7 @@ function createPrismaClient() {
     return new PrismaClient({ adapter });
   }
 
-  if (typeof process !== "undefined" && process.versions?.node) {
+  if (isNodeRuntime()) {
     try {
       return createSqliteClient();
     } catch (err) {

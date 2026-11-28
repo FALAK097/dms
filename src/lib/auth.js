@@ -46,7 +46,7 @@ function createAuth() {
       accountLinking: {
         enabled: true,
         allowDifferentEmails: true,
-        trustedProviders: ["google", "dropbox"],
+        trustedProviders: ["google"],
       },
     },
     advanced: {

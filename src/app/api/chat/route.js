@@ -78,7 +78,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     let { messages, conversationId, documentId } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -167,7 +172,7 @@ export async function POST(request) {
       take: 20,
     });
 
-    const conversationHistory = recentMessages.reverse();
+    const conversationHistory = [...recentMessages].reverse();
 
     // Auto-resolve document context if not explicitly selected
     if (!selectedDocument) {
@@ -504,7 +509,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
-      { error: "Failed to process chat", details: error.message },
+      { error: "Failed to process chat" },
       { status: 500 }
     );
   }

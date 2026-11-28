@@ -15,7 +15,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { files } = body;
 
     if (!files || !Array.isArray(files) || files.length === 0) {
@@ -38,9 +43,15 @@ export async function POST(request) {
     for (const fileData of files) {
       const { key, fileName, fileType, fileSize, contentHash } = fileData;
 
-      if (!key || !fileName) {
+      if (
+        !key ||
+        typeof key !== "string" ||
+        typeof fileName !== "string" ||
+        !fileName.trim() ||
+        fileName.length > 255
+      ) {
         console.error("Invalid file data:", fileData);
-        failedFiles.push({ fileName, reason: "Missing required fields" });
+        failedFiles.push({ fileName, reason: "Missing or invalid required fields" });
         continue;
       }
 
@@ -62,12 +73,13 @@ export async function POST(request) {
       const MAX_FILE_SIZE = 500 * 1024 * 1024;
       if (
         fileSize !== undefined &&
-        (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_SIZE)
+        (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE)
       ) {
         failedFiles.push({ fileName, reason: "Invalid file size" });
         continue;
       }
 
+      let verifiedSize;
       try {
         const verification = await verifyObjectExists(key);
 
@@ -86,20 +98,21 @@ export async function POST(request) {
           continue;
         }
 
-        if (verification.size > MAX_FILE_SIZE) {
-          failedFiles.push({ fileName, reason: "Stored file exceeds size limit" });
+        if (
+          !Number.isFinite(verification.size) ||
+          verification.size <= 0 ||
+          verification.size > MAX_FILE_SIZE
+        ) {
+          failedFiles.push({ fileName, reason: "Invalid stored file size" });
           continue;
         }
 
-        if (
-          fileSize &&
-          verification.size &&
-          Math.abs(verification.size - fileSize) > 1000
-        ) {
-          console.warn(
-            `File size mismatch for ${fileName}: expected ${fileSize}, got ${verification.size}`
-          );
+        if (fileSize !== undefined && verification.size !== fileSize) {
+          failedFiles.push({ fileName, reason: "File size mismatch" });
+          continue;
         }
+
+        verifiedSize = verification.size;
       } catch (storageError) {
         console.error(`Storage verification failed: ${key}`, storageError);
         failedFiles.push({ fileName, reason: "Storage verification failed" });
@@ -110,7 +123,7 @@ export async function POST(request) {
         let document = await prisma.document.create({
           data: {
             name: fileName,
-            size: fileSize || 0,
+            size: verifiedSize,
             type: fileType || "application/pdf",
             key,
             url: key,
@@ -219,7 +232,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Confirm upload error:", error);
     return NextResponse.json(
-      { error: "Failed to confirm uploads", details: error.message },
+      { error: "Failed to confirm uploads" },
       { status: 500 }
     );
   }
