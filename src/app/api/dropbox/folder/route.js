@@ -14,9 +14,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { folderPath } = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { folderPath } = body;
 
-    if (!folderPath) {
+    if (!folderPath || typeof folderPath !== "string") {
       return NextResponse.json(
         { error: "Folder path is required" },
         { status: 400 }
@@ -77,12 +83,24 @@ export async function POST(request) {
         );
       }
 
+      const newSyncFolderId = metadata.path_display || folderPath;
+
       await prisma.account.update({
         where: { id: dropboxAccount.id },
         data: {
-          syncFolderId: metadata.path_display || folderPath,
+          syncFolderId: newSyncFolderId,
         },
       });
+
+      if (newSyncFolderId !== dropboxAccount.syncFolderId) {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: {
+            dropboxWebhookCursor: null,
+            dropboxCursorUpdatedAt: null,
+          },
+        });
+      }
 
       return NextResponse.json({
         success: true,
@@ -93,7 +111,7 @@ export async function POST(request) {
     } catch (error) {
       console.error("Error validating folder:", error);
       return NextResponse.json(
-        { error: "Failed to validate folder", details: error.message },
+        { error: "Failed to validate folder" },
         { status: 500 }
       );
     }

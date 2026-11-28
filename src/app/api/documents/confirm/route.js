@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, isUniqueConstraintError } from "@/lib/db";
 import { verifyObjectExists } from "@/lib/storage";
 import { publishOCRProcessingJob } from "@/lib/cloudflare/jobs";
 
@@ -15,7 +15,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { files } = body;
 
     if (!files || !Array.isArray(files) || files.length === 0) {
@@ -38,9 +43,15 @@ export async function POST(request) {
     for (const fileData of files) {
       const { key, fileName, fileType, fileSize, contentHash } = fileData;
 
-      if (!key || !fileName) {
+      if (
+        !key ||
+        typeof key !== "string" ||
+        typeof fileName !== "string" ||
+        !fileName.trim() ||
+        fileName.length > 255
+      ) {
         console.error("Invalid file data:", fileData);
-        failedFiles.push({ fileName, reason: "Missing required fields" });
+        failedFiles.push({ fileName, reason: "Missing or invalid required fields" });
         continue;
       }
 
@@ -59,6 +70,16 @@ export async function POST(request) {
         continue;
       }
 
+      const MAX_FILE_SIZE = 500 * 1024 * 1024;
+      if (
+        fileSize !== undefined &&
+        (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE)
+      ) {
+        failedFiles.push({ fileName, reason: "Invalid file size" });
+        continue;
+      }
+
+      let verifiedSize;
       try {
         const verification = await verifyObjectExists(key);
 
@@ -69,14 +90,29 @@ export async function POST(request) {
         }
 
         if (
-          fileSize &&
-          verification.size &&
-          Math.abs(verification.size - fileSize) > 1000
+          verification.contentType &&
+          verification.contentType !== "application/pdf" &&
+          verification.contentType !== "application/octet-stream"
         ) {
-          console.warn(
-            `File size mismatch for ${fileName}: expected ${fileSize}, got ${verification.size}`
-          );
+          failedFiles.push({ fileName, reason: "Invalid stored content type" });
+          continue;
         }
+
+        if (
+          !Number.isFinite(verification.size) ||
+          verification.size <= 0 ||
+          verification.size > MAX_FILE_SIZE
+        ) {
+          failedFiles.push({ fileName, reason: "Invalid stored file size" });
+          continue;
+        }
+
+        if (fileSize !== undefined && verification.size !== fileSize) {
+          failedFiles.push({ fileName, reason: "File size mismatch" });
+          continue;
+        }
+
+        verifiedSize = verification.size;
       } catch (storageError) {
         console.error(`Storage verification failed: ${key}`, storageError);
         failedFiles.push({ fileName, reason: "Storage verification failed" });
@@ -84,10 +120,10 @@ export async function POST(request) {
       }
 
       try {
-        const document = await prisma.document.create({
+        let document = await prisma.document.create({
           data: {
             name: fileName,
-            size: fileSize || 0,
+            size: verifiedSize,
             type: fileType || "application/pdf",
             key,
             url: key,
@@ -107,13 +143,6 @@ export async function POST(request) {
           console.log(
             `[DEV] Skipping Cloudflare Queue for document ${document.id} - processing directly`
           );
-
-          await prisma.document.update({
-            where: { id: document.id },
-            data: {
-              status: "PENDING",
-            },
-          });
         } else {
           const queueResult = await publishOCRProcessingJob(
             document.id,
@@ -121,7 +150,7 @@ export async function POST(request) {
           );
 
           if (queueResult.success) {
-            await prisma.document.update({
+            document = await prisma.document.update({
               where: { id: document.id },
               data: {
                 backgroundJobId: queueResult.jobId,
@@ -133,7 +162,7 @@ export async function POST(request) {
             console.error(
               `Failed to enqueue processing for document ${document.id}`
             );
-            await prisma.document.update({
+            document = await prisma.document.update({
               where: { id: document.id },
               data: {
                 status: "FAILED",
@@ -145,26 +174,48 @@ export async function POST(request) {
 
         createdDocuments.push(document);
       } catch (dbError) {
-        // Handle unique constraint violation for contentHash
+        const target = dbError?.meta?.target;
+        const targetMatchesContentHash = Array.isArray(target)
+          ? target.includes("unique_content_hash_per_user") ||
+            target.includes("contentHash")
+          : typeof target === "string" &&
+            (target.includes("unique_content_hash_per_user") ||
+              target.includes("contentHash"));
+        const messageMatchesContentHash =
+          typeof dbError?.message === "string" &&
+          (dbError.message.includes("unique_content_hash_per_user") ||
+            dbError.message.includes("contentHash"));
+
+        // Handle unique constraint violation for contentHash across Prisma / D1 / SQLite
         if (
-          dbError.code === "P2002" &&
-          (dbError.meta?.target?.includes("unique_content_hash_per_user") ||
-            dbError.meta?.target?.includes("contentHash"))
+          isUniqueConstraintError(dbError) &&
+          (contentHash || targetMatchesContentHash || messageMatchesContentHash)
         ) {
-          console.log(
-            `Unique constraint violation: Document with same content hash already exists for ${fileName}`
-          );
-          const existingDocument = await prisma.document.findFirst({
-            where: {
-              contentHash,
-              userId: session.user.id,
-            },
-          });
-          failedFiles.push({
-            fileName,
-            reason: "Document already exists",
-            existingDocumentId: existingDocument?.id,
-          });
+          const existingDocument = contentHash
+            ? await prisma.document.findFirst({
+                where: {
+                  contentHash,
+                  userId: session.user.id,
+                },
+              })
+            : null;
+          if (
+            existingDocument ||
+            targetMatchesContentHash ||
+            messageMatchesContentHash
+          ) {
+            console.log(
+              `Unique constraint violation: Document with same content hash already exists for ${fileName}`
+            );
+            failedFiles.push({
+              fileName,
+              reason: "Document already exists",
+              existingDocumentId: existingDocument?.id,
+            });
+          } else {
+            console.error(`Failed to create document ${fileName}:`, dbError);
+            failedFiles.push({ fileName, reason: "Database error" });
+          }
         } else {
           console.error(`Failed to create document ${fileName}:`, dbError);
           failedFiles.push({ fileName, reason: "Database error" });
@@ -181,7 +232,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Confirm upload error:", error);
     return NextResponse.json(
-      { error: "Failed to confirm uploads", details: error.message },
+      { error: "Failed to confirm uploads" },
       { status: 500 }
     );
   }

@@ -3,7 +3,6 @@ import { openai } from "@ai-sdk/openai";
 import { google } from "@/lib/ai/google";
 import { getEncoding } from "js-tiktoken";
 
-const geminiEmbeddingModel = google.embedding("gemini-embedding-2");
 const openaiEmbeddingModel = openai.embedding("text-embedding-3-small", { dimensions: 768 });
 const tokenEncoder = getEncoding("cl100k_base");
 
@@ -14,7 +13,7 @@ const geminiEmbeddingOptions = {
 async function createEmbedding(values, options = {}) {
   try {
     return await embedMany({
-      model: geminiEmbeddingModel,
+      model: google.embedding("gemini-embedding-2"),
       values,
       providerOptions: geminiEmbeddingOptions,
       ...options,
@@ -28,7 +27,7 @@ async function createEmbedding(values, options = {}) {
 async function createSingleEmbedding(value, options = {}) {
   try {
     return await embed({
-      model: geminiEmbeddingModel,
+      model: google.embedding("gemini-embedding-2"),
       value,
       providerOptions: geminiEmbeddingOptions,
       ...options,
@@ -179,7 +178,7 @@ async function generateEmbeddings(value) {
 }
 
 async function generateEmbedding(value) {
-  const input = value.replaceAll("\\n", " ");
+  const input = value.replaceAll("\n", " ");
   const { embedding } = await createSingleEmbedding(input);
   return embedding;
 }

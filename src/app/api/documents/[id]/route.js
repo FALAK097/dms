@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, isNotFoundError } from "@/lib/db";
 import { deleteFromR2 } from "@/lib/storage";
 import { deleteEmbeddings } from "@/lib/cloudflare/vectorize";
 
@@ -79,15 +79,28 @@ export async function DELETE(request, { params }) {
       }
     }
 
-    await prisma.document.delete({
-      where: { id },
+    const deleted = await prisma.document.deleteMany({
+      where: { id, userId: session.user.id },
     });
+
+    if (deleted.count === 0) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       message: "Document deleted successfully",
     });
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
     console.error("Delete error:", error);
     return NextResponse.json(
       { error: "Failed to delete document" },

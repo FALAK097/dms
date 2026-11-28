@@ -41,7 +41,13 @@ generated/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+cloudflare-env.d.ts
 .env*
+.dev.vars
 .open-next
 .wrangler
 backups
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

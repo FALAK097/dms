@@ -1,37 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Next.js](https://nextjs.org) Document Management System (DMS) deployed on Cloudflare Workers with Cloudflare D1 (SQLite), R2, Queues, KV, and Vectorize.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js `>=22.12.0` (see `.nvmrc`)
+- `pnpm` (see `packageManager` in `package.json`)
+- Cloudflare Wrangler CLI (for local and remote D1 migrations)
+
+### Database (Cloudflare D1 / Local SQLite)
+
+Copy `.env.example` to `.env` before initializing the local database (if `DATABASE_URL` is unset or starts with `file:`, both `pnpm db:bootstrap` and `pnpm dev` default to `file:./prisma/dev.db`). Initialize (or reset with `-- --reset`) the local SQLite database from `migrations/*.sql`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+cp .env.example .env
+pnpm db:bootstrap
+```
+
+To verify migrations against `prisma/schema.prisma`:
+
+```bash
+pnpm db:check
+```
+
+To apply migrations to the local Wrangler D1 emulator (`pnpm preview:cf`, or `pnpm dev` with `USE_CLOUDFLARE_D1_DEV=true`) or remote production D1 (`dms-db`):
+
+```bash
+pnpm migrate:local   # local Wrangler D1 state
+pnpm migrate:deploy  # remote Cloudflare D1 (production)
+```
+
+### Run the app
+
+```bash
 pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-

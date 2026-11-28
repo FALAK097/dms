@@ -25,7 +25,11 @@ export async function POST(request) {
           { status: 401 }
         );
       }
-      body = await request.json();
+      try {
+        body = await request.json();
+      } catch {
+        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+      }
     } else {
       const session = await auth.api.getSession({
         headers: headersList,
@@ -34,7 +38,11 @@ export async function POST(request) {
       if (!session?.user?.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      body = await request.json();
+      try {
+        body = await request.json();
+      } catch {
+        return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+      }
     }
 
     documentId = body.documentId;
@@ -66,10 +74,41 @@ export async function POST(request) {
       }
     }
 
+    if (document.status === "READY" && document.embeddingsDone) {
+      return NextResponse.json({
+        success: true,
+        alreadyReady: true,
+        documentId: document.id,
+        documentName: document.name,
+        embeddingsDone: true,
+        chunkCount: document.chunkCount ?? 0,
+      });
+    }
+
+    const activeProcessingWindowMs = 5 * 60 * 1000;
+    if (
+      !isInternalJobRequest &&
+      document.status === "PROCESSING" &&
+      document.processingStartedAt &&
+      Date.now() - new Date(document.processingStartedAt).getTime() <
+        activeProcessingWindowMs
+    ) {
+      return NextResponse.json(
+        {
+          success: true,
+          processing: true,
+          documentId: document.id,
+          documentName: document.name,
+        },
+        { status: 202 }
+      );
+    }
+
     await prisma.document.update({
       where: { id: documentId },
       data: {
         status: "PROCESSING",
+        processingStartedAt: new Date(),
         retryCount: { increment: 1 },
       },
     });
@@ -128,12 +167,12 @@ export async function POST(request) {
         },
       });
 
+      console.error("Text extraction failed for document:", documentId, result.error);
       return NextResponse.json(
         {
           error: "Failed to extract text from document",
           documentId: documentId,
           documentName: document.name,
-          details: result.error,
         },
         { status: 500 }
       );
@@ -164,12 +203,12 @@ export async function POST(request) {
         },
       });
 
+      console.error("Embeddings generation failed for document:", documentId, embeddingResult.error);
       return NextResponse.json(
         {
           error: "Failed to generate embeddings",
           documentId: documentId,
           documentName: document.name,
-          details: embeddingResult.error,
         },
         { status: 500 }
       );
@@ -214,7 +253,7 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { error: "Failed to process document", details: error.message },
+      { error: "Failed to process document" },
       { status: 500 }
     );
   }

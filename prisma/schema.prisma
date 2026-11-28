@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 model User {
@@ -39,6 +39,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
+  @@index([userId])
   @@map("session")
 }
 
@@ -59,6 +60,7 @@ model Account {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -70,6 +72,7 @@ model Verification {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now()) @updatedAt
 
+  @@index([identifier])
   @@map("verification")
 }
 
@@ -85,20 +88,19 @@ model Document {
   user                  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
-  extractedText         String?        @db.Text
+  extractedText         String?
   status                DocumentStatus @default(PENDING)
   embeddingsDone        Boolean        @default(false)
-  embeddingsError       String?        @db.Text
+  embeddingsError       String?
   chunkCount            Int?
   backgroundJobId       String?
   processingStartedAt   DateTime?
   processingCompletedAt DateTime?
   retryCount            Int            @default(0)
-  lastError             String?        @db.Text
+  lastError             String?
 
   @@unique([contentHash, userId], name: "unique_content_hash_per_user")
   @@index([userId])
-  @@index([contentHash, userId])
   @@index([status, userId])
   @@map("document")
 }
@@ -121,7 +123,7 @@ model Message {
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           MessageRole
-  content        String       @db.Text
+  content        String
   sources        Json?
   parts          Json?
   feedback       Int?

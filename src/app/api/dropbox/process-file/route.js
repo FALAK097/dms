@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, isUniqueConstraintError } from "@/lib/db";
 import { dropboxApiRequest } from "@/lib/dropbox";
-import { uploadToR2, generateDocumentKey } from "@/lib/storage";
+import { uploadToR2, deleteFromR2, generateDocumentKey } from "@/lib/storage";
 import {
   publishOCRProcessingJob,
   verifyInternalJobRequest,
 } from "@/lib/cloudflare/jobs";
+
+const MAX_DROPBOX_FILE_BYTES = 50 * 1024 * 1024;
 
 export async function POST(request) {
   try {
@@ -13,25 +15,48 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { userId, fileEntry, source } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+    const { userId, fileEntry } = body;
 
-    if (!userId || !fileEntry) {
+    if (
+      !userId ||
+      !fileEntry ||
+      typeof fileEntry.name !== "string" ||
+      !fileEntry.name.trim() ||
+      fileEntry.name.length > 255
+    ) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Missing or invalid required fields" },
         { status: 400 }
       );
     }
 
-    const fileExtension = fileEntry.name
-      .substring(fileEntry.name.lastIndexOf("."))
-      .toLowerCase();
+    const dotIndex = fileEntry.name.lastIndexOf(".");
+    const fileExtension =
+      dotIndex >= 0 ? fileEntry.name.substring(dotIndex).toLowerCase() : "";
 
     if (fileExtension !== ".pdf") {
       console.log(`⏭️  Skipping non-PDF file: ${fileEntry.name}`);
       return NextResponse.json({
         success: true,
         message: "Skipped non-PDF file",
+      });
+    }
+
+    if (
+      Number.isFinite(fileEntry.size) &&
+      fileEntry.size > MAX_DROPBOX_FILE_BYTES
+    ) {
+      console.log(`⏭️  Skipping oversized file: ${fileEntry.name}`);
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: "Skipped oversized file",
       });
     }
 
@@ -68,15 +93,29 @@ export async function POST(request) {
     );
 
     if (!downloadResponse.ok) {
-      const error = `Failed to download file from Dropbox: ${downloadResponse.status}`;
-      console.error(error);
+      const errorText = await downloadResponse.text().catch(() => "");
+      console.error(
+        `Failed to download file from Dropbox: ${downloadResponse.status} ${errorText}`
+      );
       return NextResponse.json(
-        { error, details: await downloadResponse.text() },
+        { error: `Failed to download file from Dropbox: ${downloadResponse.status}` },
         { status: 500 }
       );
     }
 
     const fileBuffer = await downloadResponse.arrayBuffer();
+    if (
+      fileBuffer.byteLength <= 0 ||
+      fileBuffer.byteLength > MAX_DROPBOX_FILE_BYTES
+    ) {
+      console.log(`⏭️  Skipping invalid/oversized file: ${fileEntry.name}`);
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: "Skipped oversized file",
+      });
+    }
+
     const key = generateDocumentKey(userId, fileEntry.name);
 
     const file = {
@@ -86,19 +125,35 @@ export async function POST(request) {
 
     const url = await uploadToR2(file, key);
 
-    const document = await prisma.document.create({
-      data: {
-        name: fileEntry.name,
-        size: fileEntry.size,
-        type: "application/pdf",
-        key: key,
-        url: url,
-        userId: userId,
-        contentHash: contentHash,
-        status: "PROCESSING",
-        processingStartedAt: new Date(),
-      },
-    });
+    let document;
+    try {
+      document = await prisma.document.create({
+        data: {
+          name: fileEntry.name,
+          size: Number.isFinite(fileEntry.size)
+            ? fileEntry.size
+            : fileBuffer.byteLength,
+          type: "application/pdf",
+          key: key,
+          url: url,
+          userId: userId,
+          contentHash: contentHash,
+          status: "PROCESSING",
+          processingStartedAt: new Date(),
+        },
+      });
+    } catch (dbError) {
+      await deleteFromR2(key).catch((e) =>
+        console.error("Failed to cleanup R2 object:", e)
+      );
+      if (isUniqueConstraintError(dbError) && contentHash) {
+        return NextResponse.json({
+          success: true,
+          message: "Duplicate file skipped",
+        });
+      }
+      throw dbError;
+    }
 
     const ocrJobResult = await publishOCRProcessingJob(document.id, userId);
 
@@ -129,10 +184,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error in process-file worker:", error);
     return NextResponse.json(
-      {
-        error: "Processing failed",
-        details: error.message,
-      },
+      { error: "Processing failed" },
       { status: 500 }
     );
   }

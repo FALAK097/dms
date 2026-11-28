@@ -68,7 +68,9 @@ export async function POST(request) {
       select: { dropboxWebhookCursor: true },
     });
 
-    let cursor = null;
+    let cursor = user?.dropboxWebhookCursor || null;
+    let latestCursor = null;
+    let cursorResetAttempted = false;
     const filesToProcess = [];
     let hasMore = true;
 
@@ -84,11 +86,22 @@ export async function POST(request) {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              cursor: cursor,
-            }),
+            body: JSON.stringify({ cursor }),
           }
         );
+
+        if (!response.ok) {
+          if (cursorResetAttempted) {
+            throw new Error(
+              `Dropbox list_folder/continue failed (${response.status}): ${await response.text()}`
+            );
+          }
+          console.log("Sync cursor invalid, reinitializing...");
+          cursor = null;
+          cursorResetAttempted = true;
+          continue;
+        }
+
         result = await response.json();
       } else {
         const response = await dropboxApiRequest(
@@ -106,26 +119,25 @@ export async function POST(request) {
             }),
           }
         );
+
+        if (!response.ok) {
+          throw new Error(
+            `Dropbox list_folder failed (${response.status}): ${await response.text()}`
+          );
+        }
+
         result = await response.json();
       }
 
-      for (const entry of result.entries) {
+      for (const entry of result.entries || []) {
         if (entry[".tag"] === "file") {
           filesToProcess.push(entry);
         }
       }
 
       cursor = result.cursor;
-
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: {
-          dropboxWebhookCursor: cursor,
-          dropboxCursorUpdatedAt: new Date(),
-        },
-      });
-
-      hasMore = result.has_more;
+      latestCursor = result.cursor;
+      hasMore = Boolean(result.has_more);
     }
 
     if (filesToProcess.length > 0) {
@@ -135,26 +147,58 @@ export async function POST(request) {
         { source: "manual_sync" }
       );
 
+      if (queueResult.failedCount > 0) {
+        console.error(
+          `Dropbox manual sync failed to queue ${queueResult.failedCount} file(s); cursor not advanced`
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Some files failed to queue for processing. Please retry sync.",
+            queuedCount: queueResult.queuedCount,
+            failedCount: queueResult.failedCount,
+          },
+          { status: 502 }
+        );
+      }
+
+      if (latestCursor) {
+        await prisma.user.update({
+          where: { id: session.user.id },
+          data: {
+            dropboxWebhookCursor: latestCursor,
+            dropboxCursorUpdatedAt: new Date(),
+          },
+        });
+      }
+
       return NextResponse.json({
         success: true,
         message: `${queueResult.queuedCount} file(s) queued for processing. They will appear in your dashboard shortly.`,
         queuedCount: queueResult.queuedCount,
         failedCount: queueResult.failedCount,
       });
-    } else {
-      console.log("ℹ️  No new files to sync");
-      return NextResponse.json({
-        success: true,
-        message: "No new files to sync.",
-        queuedCount: 0,
-        failedCount: 0,
+    }
+
+    if (latestCursor) {
+      await prisma.user.update({
+        where: { id: session.user.id },
+        data: {
+          dropboxWebhookCursor: latestCursor,
+          dropboxCursorUpdatedAt: new Date(),
+        },
       });
     }
+
+    console.log("ℹ️  No new files to sync");
+    return NextResponse.json({
+      success: true,
+      message: "No new files to sync.",
+      queuedCount: 0,
+      failedCount: 0,
+    });
   } catch (error) {
     console.error("Manual sync error:", error);
-    return NextResponse.json(
-      { error: "Sync failed", details: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
   }
 }

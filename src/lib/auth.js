@@ -3,10 +3,13 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { genericOAuth } from "better-auth/plugins";
 import { prisma } from "./db";
 
-let _auth = null;
+const globalForAuth = globalThis;
 
-function getAuth() {
-  if (_auth) return _auth;
+function createAuth() {
+  const baseURL =
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://dms.falakgala.dev";
 
   const socialProviders = {};
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
@@ -16,14 +19,24 @@ function getAuth() {
     };
   }
 
-  _auth = betterAuth({
+  return betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL:
-      process.env.BETTER_AUTH_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
+    baseURL,
+    trustedOrigins: [
+      baseURL,
+      process.env.NEXT_PUBLIC_APP_URL,
       "https://dms.falakgala.dev",
+      ...(process.env.NODE_ENV !== "production"
+        ? [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8788",
+            "http://localhost:8787",
+          ]
+        : []),
+    ].filter(Boolean),
     database: prismaAdapter(prisma, {
-      provider: "postgresql",
+      provider: "sqlite",
     }),
     emailAndPassword: {
       enabled: false,
@@ -33,6 +46,12 @@ function getAuth() {
       accountLinking: {
         enabled: true,
         allowDifferentEmails: true,
+        trustedProviders: ["google"],
+      },
+    },
+    advanced: {
+      ipAddress: {
+        ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
       },
     },
     plugins: [
@@ -47,9 +66,7 @@ function getAuth() {
             authorizationUrlParams: {
               token_access_type: "offline",
             },
-            redirectURI: `${
-              process.env.NEXT_PUBLIC_APP_URL || "https://dms.falakgala.dev"
-            }/api/auth/oauth2/callback/dropbox`,
+            redirectURI: `${baseURL}/api/auth/oauth2/callback/dropbox`,
             accessType: "offline",
             scopes: [
               "account_info.read",
@@ -83,6 +100,7 @@ function getAuth() {
                 return {
                   id: profile.account_id,
                   email: profile.email,
+                  emailVerified: Boolean(profile.email_verified),
                   name: profile.name.display_name,
                   image: profile.profile_photo_url || null,
                 };
@@ -96,8 +114,13 @@ function getAuth() {
       }),
     ],
   });
+}
 
-  return _auth;
+function getAuth() {
+  if (!globalForAuth.auth) {
+    globalForAuth.auth = createAuth();
+  }
+  return globalForAuth.auth;
 }
 
 export const auth = new Proxy(

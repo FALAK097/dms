@@ -17,10 +17,20 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { fileName, fileType, fileSize, contentHash } = body;
 
-    if (!fileName || !fileType) {
+    if (
+      typeof fileName !== "string" ||
+      !fileName.trim() ||
+      typeof fileType !== "string" ||
+      !fileType
+    ) {
       return NextResponse.json(
         { error: "fileName and fileType are required" },
         { status: 400 }
@@ -52,7 +62,10 @@ export async function POST(request) {
     }
 
     const MAX_FILE_SIZE = 500 * 1024 * 1024;
-    if (fileSize && fileSize > MAX_FILE_SIZE) {
+    if (
+      fileSize !== undefined &&
+      (!Number.isFinite(fileSize) || fileSize < 0 || fileSize > MAX_FILE_SIZE)
+    ) {
       return NextResponse.json(
         { error: `File size exceeds maximum allowed size of 500MB` },
         { status: 400 }
@@ -79,7 +92,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Presigned URL generation error:", error);
     return NextResponse.json(
-      { error: "Failed to generate upload URL", details: error.message },
+      { error: "Failed to generate upload URL" },
       { status: 500 }
     );
   }

@@ -3,9 +3,9 @@
   "name": "dms",
   "main": ".open-next/worker.js",
   "build": {
-    "command": "pnpm run build:cf"
+    "command": "[ -n \"$OPEN_NEXT_DEPLOY\" ] || pnpm run build:cf"
   },
-  "compatibility_date": "2025-05-05",
+  "compatibility_date": "2026-10-26",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -23,6 +23,13 @@
     {
       "binding": "DMS_BUCKET",
       "bucket_name": "dms-uploads"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dms-db",
+      "database_id": "0cc07a1a-e9bf-4f31-8640-845333d5fd00"
     }
   ],
   "vars": {

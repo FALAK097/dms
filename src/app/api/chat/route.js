@@ -9,6 +9,7 @@ import { google } from "@/lib/ai/google";
 import { streamText, tool, isStepCount } from "ai";
 import { z } from "zod";
 import { prompts } from "@/config/prompts";
+import { generateConversationTitle } from "@/lib/conversations/generate-title";
 
 function loadPrompts() {
   return prompts;
@@ -77,7 +78,12 @@ export async function POST(request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     let { messages, conversationId, documentId } = body;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -166,7 +172,7 @@ export async function POST(request) {
       take: 20,
     });
 
-    const conversationHistory = recentMessages.reverse();
+    const conversationHistory = [...recentMessages].reverse();
 
     // Auto-resolve document context if not explicitly selected
     if (!selectedDocument) {
@@ -177,7 +183,7 @@ export async function POST(request) {
         const matched = await prisma.document.findFirst({
           where: {
             userId: session.user.id,
-            name: { contains: queryTerm, mode: "insensitive" },
+            name: { contains: queryTerm },
           },
         });
         if (matched) {
@@ -339,7 +345,6 @@ export async function POST(request) {
               userId: session.user.id,
               name: {
                 contains: documentName,
-                mode: "insensitive",
               },
             };
             const [totalCount, documents] = await Promise.all([
@@ -479,20 +484,18 @@ export async function POST(request) {
           }
 
           if (isNewConversation || conversation.title === "New Chat") {
-            const appUrl =
-              process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
-            setTimeout(() => {
-              fetch(
-                `${appUrl}/api/conversations/${conversation.id}/generate-title`,
-                {
-                  method: "POST",
-                  headers: {
-                    Cookie: request.headers.get("cookie") || "",
-                  },
-                }
-              ).catch((err) => console.error("Failed to generate title:", err));
-            }, 100);
+            const titleTask = generateConversationTitle(
+              conversation.id,
+              session.user.id
+            ).catch((err) => console.error("Failed to generate title:", err));
+            const waitUntil =
+              globalThis[Symbol.for("__cloudflare-context__")]?.ctx?.waitUntil;
+            if (typeof waitUntil === "function") {
+              waitUntil.call(
+                globalThis[Symbol.for("__cloudflare-context__")].ctx,
+                titleTask
+              );
+            }
           }
         } catch (error) {
           console.error("Error saving assistant message:", error);
@@ -506,7 +509,7 @@ export async function POST(request) {
   } catch (error) {
     console.error("Chat API error:", error);
     return NextResponse.json(
-      { error: "Failed to process chat", details: error.message },
+      { error: "Failed to process chat" },
       { status: 500 }
     );
   }

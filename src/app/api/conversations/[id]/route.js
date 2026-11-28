@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, isNotFoundError } from "@/lib/db";
 
 export async function GET(request, { params }) {
   try {
@@ -84,6 +84,12 @@ export async function PATCH(request, { params }) {
 
     return NextResponse.json({ conversation: updated });
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 }
+      );
+    }
     console.error("Error updating conversation:", error);
     return NextResponse.json(
       { error: "Failed to update conversation" },
@@ -120,12 +126,25 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prisma.conversation.delete({
-      where: { id },
+    const deleted = await prisma.conversation.deleteMany({
+      where: { id, userId: session.user.id },
     });
+
+    if (deleted.count === 0) {
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        { error: "Conversation not found" },
+        { status: 404 }
+      );
+    }
     console.error("Error deleting conversation:", error);
     return NextResponse.json(
       { error: "Failed to delete conversation" },
